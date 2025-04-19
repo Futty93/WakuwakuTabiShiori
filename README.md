@@ -87,8 +87,8 @@ graph LR
 
     subgraph Plan Detail Flow
         PlanDetailCover -- "日程リストへ" or スワイプ --> PlanDetailSchedule(予定詳細 - 日程リスト/項目表示)
-        PlanDetailSchedule -- 日付タブ/リスト選択 --> PlanDetailSchedule %% 同じ画面内で表示内容更新
-        PlanDetailSchedule -- "+" 日程追加ボタン --> PlanDetailSchedule %% 再描画
+        PlanDetailSchedule -- 日付タブ/リスト選択 --> PlanDetailSchedule
+        PlanDetailSchedule -- "+" 日程追加ボタン --> PlanDetailSchedule
         PlanDetailSchedule -- 場所・予定項目 タップ --> PlanItemEdit(場所・予定 編集/追加)
         PlanDetailSchedule -- "+" 場所・予定追加ボタン --> PlanItemEdit(場所・予定 編集/追加)
         PlanItemEdit -- 保存ボタン --> PlanDetailSchedule
@@ -97,8 +97,8 @@ graph LR
         PlanDetailCover -- ヘッダー 編集ボタン --> PlanEdit(予定全体 編集)
         PlanEdit -- 保存ボタン --> PlanDetailCover
         PlanEdit -- キャンセルボタン --> PlanDetailCover
-        Top -- 設定アイコン --> Settings(設定画面) %% オプション
-        Settings -- 戻る --> Top %% オプション
+        Top -- 設定アイコン --> Settings(設定画面)
+        Settings -- 戻る --> Top 
     end
 
     classDef page fill:#E0FFFF,stroke:#87CEFA,stroke-width:2px,rx:8px,ry:8px;
