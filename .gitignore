@@ -1,0 +1,32 @@
+# macOS system files
+.DS_Store
+
+# Swift Package Manager
+.build/
+Packages/
+*.resolved
+
+# Xcode project files
+*.xcodeproj/project.xcworkspace/xcshareddata/xcschemes/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcshareddata/
+*.xcworkspace/xcuserdata/
+*.xcuserdatad/
+
+# Xcode build products and derived data
+build/
+DerivedData/
+
+# User-specific settings (consider adding if needed)
+# UserInterfaceState.xcuserstate
+
+# Cocoapods (if you use it)
+# Pods/
+
+# Carthage (if you use it)
+# Carthage/
+
+# Secrets / API Keys (add your own files if you have them)
+# Secrets.xcconfig
+# APIKeys.plist

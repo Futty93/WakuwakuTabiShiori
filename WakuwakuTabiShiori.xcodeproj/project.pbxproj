@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B8CCD5822DB3EFAF00ECA4BE /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = B8CCD5812DB3EF8F00ECA4BE /* README.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		B8CCD52B2DB3DB7300ECA4BE /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +31,7 @@
 		B8CCD5162DB3DB7200ECA4BE /* WakuwakuTabiShiori.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WakuwakuTabiShiori.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B8CCD52A2DB3DB7300ECA4BE /* WakuwakuTabiShioriTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WakuwakuTabiShioriTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B8CCD5342DB3DB7300ECA4BE /* WakuwakuTabiShioriUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WakuwakuTabiShioriUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B8CCD5812DB3EF8F00ECA4BE /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -88,6 +93,7 @@
 		B8CCD50D2DB3DB7200ECA4BE = {
 			isa = PBXGroup;
 			children = (
+				B8CCD5812DB3EF8F00ECA4BE /* README.md */,
 				B8CCD5182DB3DB7200ECA4BE /* WakuwakuTabiShiori */,
 				B8CCD52D2DB3DB7300ECA4BE /* WakuwakuTabiShioriTests */,
 				B8CCD5372DB3DB7300ECA4BE /* WakuwakuTabiShioriUITests */,
@@ -225,6 +231,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B8CCD5822DB3EFAF00ECA4BE /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

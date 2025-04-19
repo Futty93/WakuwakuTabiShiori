@@ -25,7 +25,7 @@ struct WakuwakuTabiShioriApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            TopView()
         }
         .modelContainer(sharedModelContainer)
     }
