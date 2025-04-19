@@ -80,7 +80,7 @@ graph LR
 
     subgraph Main Flow
         Top -- 予定カード タップ --> PlanDetailCover(予定詳細 - 表紙)
-        Top -- "+" フローティングボタン --> NewPlan(新規予定作成)
+        Top -- "+"フローティングボタン --> NewPlan(新規予定作成)
         NewPlan -- 保存ボタン --> Top
         NewPlan -- キャンセルボタン --> Top
     end
@@ -88,9 +88,9 @@ graph LR
     subgraph Plan Detail Flow
         PlanDetailCover -- "日程リストへ" or スワイプ --> PlanDetailSchedule(予定詳細 - 日程リスト/項目表示)
         PlanDetailSchedule -- 日付タブ/リスト選択 --> PlanDetailSchedule
-        PlanDetailSchedule -- "+" 日程追加ボタン --> PlanDetailSchedule
+        PlanDetailSchedule -- "+"日程追加ボタン --> PlanDetailSchedule
         PlanDetailSchedule -- 場所・予定項目 タップ --> PlanItemEdit(場所・予定 編集/追加)
-        PlanDetailSchedule -- "+" 場所・予定追加ボタン --> PlanItemEdit(場所・予定 編集/追加)
+        PlanDetailSchedule -- "+"場所・予定追加ボタン --> PlanItemEdit(場所・予定 編集/追加)
         PlanItemEdit -- 保存ボタン --> PlanDetailSchedule
         PlanItemEdit -- キャンセル/削除 --> PlanDetailSchedule
         PlanDetailSchedule -- ヘッダー 戻るボタン --> PlanDetailCover
@@ -98,7 +98,7 @@ graph LR
         PlanEdit -- 保存ボタン --> PlanDetailCover
         PlanEdit -- キャンセルボタン --> PlanDetailCover
         Top -- 設定アイコン --> Settings(設定画面)
-        Settings -- 戻る --> Top 
+        Settings -- 戻る --> Top
     end
 
     classDef page fill:#E0FFFF,stroke:#87CEFA,stroke-width:2px,rx:8px,ry:8px;
