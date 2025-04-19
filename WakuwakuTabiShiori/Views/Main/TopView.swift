@@ -11,6 +11,7 @@ import SwiftData
 struct TopView: View {
     @Environment(\.modelContext) private var modelContext // SwiftData操作用
     @State private var viewModel: TopViewModel // ViewModelを状態として持つ
+    @State private var showingNewPlanSheet = false // 新規作成シート表示フラグ
 
     init() {
         // _viewModelの初期化はinitで行うことが多い (modelContextを渡すため)
@@ -19,51 +20,120 @@ struct TopView: View {
     }
 
     var body: some View {
-        NavigationStack { // または NavigationView
-            VStack {
+        NavigationStack {
+            VStack(spacing: 0) {
                 // フィルター選択ボタン
                 Picker("フィルター", selection: $viewModel.currentFilter) {
-                    Text("これからの予定").tag(TopViewModel.PlanFilter.upcoming)
-                    Text("過去の予定").tag(TopViewModel.PlanFilter.past)
+                    Text("これからの予定")
+                        .tag(TopViewModel.PlanFilter.upcoming)
+                    Text("過去の予定")
+                        .tag(TopViewModel.PlanFilter.past)
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(Color(.systemBackground))
                 .onChange(of: viewModel.currentFilter) { _, newFilter in
-                    viewModel.setFilter(newFilter) // フィルター変更時にViewModelのメソッド呼び出し
+                    viewModel.setFilter(newFilter)
+                }
+
+                // エラーメッセージがあれば表示
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding(.horizontal)
+                        .padding(.top, 4)
                 }
 
                 if viewModel.isLoading {
-                    ProgressView() // ローディング表示
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    // ローディング表示
+                    Spacer()
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .scaleEffect(1.5)
+                    Spacer()
+                } else if viewModel.plans.isEmpty {
+                    // 予定がない場合のメッセージ
+                    Spacer()
+                    VStack(spacing: 20) {
+                        Image(systemName: "map")
+                            .font(.system(size: 70))
+                            .foregroundColor(.gray)
+
+                        Text(viewModel.currentFilter == .upcoming ? "これからの予定はありません" : "過去の予定はありません")
+                            .font(.headline)
+                            .foregroundColor(.gray)
+
+                        Button {
+                            showingNewPlanSheet = true
+                        } label: {
+                            Text("新しい旅行プランを作成")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.blue)
+                                .cornerRadius(10)
+                        }
+                    }
+                    .padding()
+                    Spacer()
                 } else {
-                    List {
-                        ForEach(viewModel.plans) { plan in
-                            NavigationLink(value: plan) { // 画面遷移用
-                                PlanCardView(plan: plan) // 予定カード (ViewModelから渡されたデータを使う)
+                    // 予定一覧表示
+                    ScrollView {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 280), spacing: 16)], spacing: 16) {
+                            ForEach(viewModel.plans) { plan in
+                                PlanCardView(plan: plan)
+                                    .background(
+                                        NavigationLink(value: plan) { EmptyView() }
+                                            .opacity(0)
+                                    )
+                                    .contentShape(Rectangle())
+                                    .contextMenu {
+                                        Button(role: .destructive) {
+                                            viewModel.deletePlan(plan: plan)
+                                        } label: {
+                                            Label("削除", systemImage: "trash")
+                                        }
+                                    }
                             }
                         }
-                        .onDelete { indexSet in
-                            // スワイプ削除時の処理
-                            deletePlans(at: indexSet)
-                        }
+                        .padding()
                     }
                 }
             }
-            .navigationTitle("旅行プラン")
+            .navigationTitle("わくわく旅しおり")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink {
-                        NewPlanView() // 新規作成画面へ
+                    Button {
+                        showingNewPlanSheet = true
                     } label: {
-                        Image(systemName: "plus.circle.fill") // "+" ボタン
+                        Image(systemName: "plus.circle.fill")
                             .symbolRenderingMode(.palette)
-                            .foregroundStyle(.white, Color.blue) // ポップな色使い
+                            .foregroundStyle(.white, Color.blue)
                             .font(.title2)
+                    }
+                }
+
+                ToolbarItem(placement: .navigationBarLeading) {
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        Image(systemName: "gear")
+                            .foregroundColor(.gray)
                     }
                 }
             }
             .navigationDestination(for: Plan.self) { plan in
-                PlanDetailContainerView(plan: plan) // 詳細画面へ遷移
+                PlanDetailContainerView(plan: plan)
+            }
+            .sheet(isPresented: $showingNewPlanSheet) {
+                // シートが閉じられた時の処理
+                viewModel.refreshAfterCreate()
+            } content: {
+                NavigationStack {
+                    NewPlanView()
+                }
             }
             .onAppear {
                 // Viewが表示された時にViewModelのmodelContextを更新し、データを読み込む
@@ -72,17 +142,9 @@ struct TopView: View {
             }
         }
     }
-
-    // Listの削除処理
-    private func deletePlans(at offsets: IndexSet) {
-        offsets.map { viewModel.plans[$0] }.forEach { plan in
-            viewModel.deletePlan(plan: plan) // ViewModelの削除メソッド呼び出し
-        }
-    }
 }
-
 
 #Preview {
     TopView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(for: Plan.self, inMemory: true)
 }

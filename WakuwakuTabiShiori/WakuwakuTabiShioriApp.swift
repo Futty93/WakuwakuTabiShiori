@@ -12,7 +12,10 @@ import SwiftData
 struct WakuwakuTabiShioriApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            Plan.self,
+            Schedule.self,
+            PlanItem.self,
+            User.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
