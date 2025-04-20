@@ -11,6 +11,18 @@ import SwiftData
 struct PlanDetailCoverView: View {
     @Bindable var plan: Plan
     @State private var showingShareSheet = false
+    @Environment(\.modelContext) private var modelContext
+
+    // ViewModel
+    @StateObject private var viewModel: PlanDetailViewModel
+
+    init(plan: Plan) {
+        self.plan = plan
+        self._viewModel = StateObject(wrappedValue: PlanDetailViewModel(
+            plan: plan,
+            modelContext: ModelContext(try! ModelContainer(for: Plan.self))
+        ))
+    }
 
     // 日付フォーマッター
     private let dateFormatter: DateFormatter = {
@@ -52,6 +64,12 @@ struct PlanDetailCoverView: View {
             .padding(.bottom, 30)
         }
         .background(Color(.systemGroupedBackground))
+        .onAppear {
+            // ModelContextを更新
+            viewModel.modelContext = modelContext
+            // プランへの参照も最新に更新
+            viewModel.plan = plan
+        }
     }
 
     // テーマバナー
@@ -71,7 +89,7 @@ struct PlanDetailCoverView: View {
             // テーマアイコン
             VStack(alignment: .leading) {
                 // テーマアイコン（テーマに合わせて変更する）
-                Image(systemName: getThemeIcon(for: plan.themeName))
+                Image(systemName: Color.iconNameForTheme(plan.themeName))
                     .font(.system(size: 60))
                     .foregroundColor(.white.opacity(0.9))
 
@@ -199,7 +217,7 @@ struct PlanDetailCoverView: View {
                 .frame(maxWidth: .infinity)
 
                 // 使用金額（計算済み）
-                if let usedBudget = calculateUsedBudget() {
+                if let usedBudget = viewModel.calculateUsedBudget() {
                     VStack {
                         Text(currencyFormatter.string(from: NSNumber(value: usedBudget)) ?? "¥0")
                             .font(.title2.bold())
@@ -213,12 +231,11 @@ struct PlanDetailCoverView: View {
                 }
 
                 // 残り予算
-                if let usedBudget = calculateUsedBudget() {
-                    let remaining = budget - usedBudget
+                if let remainingBudget = viewModel.calculateRemainingBudget() {
                     VStack {
-                        Text(currencyFormatter.string(from: NSNumber(value: max(0, remaining))) ?? "¥0")
+                        Text(currencyFormatter.string(from: NSNumber(value: max(0, remainingBudget))) ?? "¥0")
                             .font(.title2.bold())
-                            .foregroundColor(remaining < 0 ? .red : .blue)
+                            .foregroundColor(remainingBudget < 0 ? .red : .blue)
 
                         Text("残り予算")
                             .font(.caption)
@@ -276,38 +293,6 @@ struct PlanDetailCoverView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
-    }
-
-    // テーマアイコンを取得
-    private func getThemeIcon(for theme: String) -> String {
-        switch theme {
-        case "Sea": return "water.waves"
-        case "Mountain": return "mountain.2"
-        case "City": return "building.2"
-        case "Cafe": return "cup.and.saucer"
-        case "Festival": return "music.note"
-        case "Cherry Blossom": return "leaf"
-        case "Autumn": return "leaf.fill"
-        default: return "sparkles"
-        }
-    }
-
-    // 使用済み予算を計算
-    private func calculateUsedBudget() -> Double? {
-        guard let schedules = plan.schedules else { return nil }
-
-        var total: Double = 0
-        for schedule in schedules {
-            if let items = schedule.items {
-                for item in items {
-                    if let cost = item.cost {
-                        total += cost
-                    }
-                }
-            }
-        }
-
-        return total
     }
 }
 

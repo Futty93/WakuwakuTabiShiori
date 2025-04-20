@@ -20,74 +20,48 @@ struct PlanItemEditView: View {
     // 親の旅行プラン
     let plan: Plan?
 
-    // フォーム入力状態
-    @State private var name = ""
-    @State private var memo = ""
-    @State private var time = Date()
-    @State private var category = "other"
-    @State private var cost: Double?
-    @State private var address = ""
-    @State private var isCompleted = false
+    // ViewModel
+    @StateObject private var viewModel: PlanItemEditViewModel
 
-    // 写真関連
-    @State private var photoItem: PhotosPickerItem?
-    @State private var photoData: Data?
-    @State private var uiImage: UIImage?
-
-    // 位置情報（将来的にMKMapViewと連携）
-    @State private var latitude: Double?
-    @State private var longitude: Double?
-
-    // カテゴリー選択肢
-    let categories = [
-        ("transport", "交通", "bus.fill"),
-        ("meal", "食事", "fork.knife"),
-        ("sightseeing", "観光", "camera.fill"),
-        ("hotel", "宿泊", "bed.double.fill"),
-        ("activity", "アクティビティ", "figure.walk"),
-        ("shopping", "ショッピング", "cart.fill"),
-        ("other", "その他", "mappin")
-    ]
-
-    // カテゴリーに基づく色の取得
-    private var categoryColor: Color {
-        switch category {
-        case "transport": return .blue
-        case "meal": return .orange
-        case "sightseeing": return .green
-        case "hotel": return .purple
-        case "activity": return .pink
-        case "shopping": return .red
-        default: return .gray
-        }
+    init(item: PlanItem? = nil, schedule: Schedule, plan: Plan?) {
+        self.item = item
+        self.schedule = schedule
+        self.plan = plan
+        self._viewModel = StateObject(wrappedValue: PlanItemEditViewModel(
+            modelContext: ModelContext(try! ModelContainer(for: Plan.self)),
+            item: item,
+            schedule: schedule,
+            plan: plan,
+            dismiss: { }
+        ))
     }
 
     var body: some View {
         Form {
             // 基本情報セクション
             Section {
-                TextField("名称（必須）", text: $name)
+                TextField("名称（必須）", text: $viewModel.name)
                     .font(.headline)
 
-                DatePicker("時間", selection: $time, displayedComponents: [.hourAndMinute, .date])
+                DatePicker("時間", selection: $viewModel.time, displayedComponents: [.hourAndMinute, .date])
 
                 // カテゴリー選択
                 HStack {
                     Text("カテゴリー")
                     Spacer()
                     Menu {
-                        ForEach(categories, id: \.0) { code, title, icon in
+                        ForEach(Color.categoryDefinitions, id: \.code) { code, name, icon in
                             Button {
-                                self.category = code
+                                viewModel.category = code
                             } label: {
-                                Label(title, systemImage: icon)
+                                Label(name, systemImage: icon)
                             }
                         }
                     } label: {
                         HStack {
-                            Image(systemName: getCategoryIcon(for: category))
-                                .foregroundColor(categoryColor)
-                            Text(getCategoryName(for: category))
+                            Image(systemName: Color.iconForCategory(viewModel.category))
+                                .foregroundColor(viewModel.categoryColor)
+                            Text(Color.nameForCategory(viewModel.category))
                                 .foregroundColor(.primary)
                             Image(systemName: "chevron.down")
                                 .font(.caption)
@@ -107,7 +81,7 @@ struct PlanItemEditView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
 
-                    TextEditor(text: $memo)
+                    TextEditor(text: $viewModel.memo)
                         .frame(minHeight: 100)
                 }
                 .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
@@ -115,14 +89,14 @@ struct PlanItemEditView: View {
                 HStack {
                     Image(systemName: "mappin")
                         .foregroundColor(.red)
-                    TextField("住所", text: $address)
+                    TextField("住所", text: $viewModel.address)
                 }
             }
 
             // 写真セクション
             Section {
                 VStack(alignment: .leading) {
-                    if let uiImage = uiImage {
+                    if let uiImage = viewModel.uiImage {
                         HStack {
                             Spacer()
                             Image(uiImage: uiImage)
@@ -135,8 +109,8 @@ struct PlanItemEditView: View {
 
                         // 写真削除ボタン
                         Button(role: .destructive) {
-                            self.uiImage = nil
-                            self.photoData = nil
+                            viewModel.uiImage = nil
+                            viewModel.photoData = nil
                         } label: {
                             Label("写真を削除", systemImage: "trash")
                         }
@@ -144,18 +118,17 @@ struct PlanItemEditView: View {
                     }
 
                     // 写真選択ボタン
-                    PhotosPicker(selection: $photoItem, matching: .images) {
+                    PhotosPicker(selection: $viewModel.photoItem, matching: .images) {
                         Label("写真を追加", systemImage: "photo")
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 8)
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(categoryColor)
-                    .onChange(of: photoItem) { oldValue, newValue in
-                        Task {
-                            if let data = try? await newValue?.loadTransferable(type: Data.self) {
-                                photoData = data
-                                uiImage = UIImage(data: data)
+                    .tint(viewModel.categoryColor)
+                    .onChange(of: viewModel.photoItem) { oldValue, newValue in
+                        if let newItem = newValue {
+                            Task {
+                                await viewModel.loadImage(from: newItem)
                             }
                         }
                     }
@@ -169,11 +142,11 @@ struct PlanItemEditView: View {
             Section {
                 HStack {
                     Text("¥")
-                    TextField("費用（任意）", value: $cost, format: .number)
+                    TextField("費用（任意）", value: $viewModel.cost, format: .number)
                         .keyboardType(.numberPad)
                 }
 
-                Toggle("完了済み", isOn: $isCompleted)
+                Toggle("完了済み", isOn: $viewModel.isCompleted)
             } header: {
                 Text("費用・状態")
                     .foregroundColor(plan?.themeColor ?? .blue)
@@ -182,15 +155,17 @@ struct PlanItemEditView: View {
             // 保存ボタン
             Section {
                 Button {
-                    saveItem()
+                    // ViewModelのdismissActionを再設定してから保存処理を呼び出し
+                    viewModel.dismissAction = dismiss
+                    viewModel.saveItem()
                 } label: {
                     Text("保存")
                         .bold()
                         .frame(maxWidth: .infinity)
                 }
-                .listRowBackground(name.isEmpty ? Color.gray.opacity(0.3) : plan?.themeColor ?? .blue)
+                .listRowBackground(viewModel.isFormValid ? (plan?.themeColor ?? .blue) : Color.gray.opacity(0.3))
                 .foregroundColor(.white)
-                .disabled(name.isEmpty)
+                .disabled(!viewModel.isFormValid)
             }
             .listRowInsets(EdgeInsets())
         }
@@ -204,74 +179,11 @@ struct PlanItemEditView: View {
             }
         }
         .onAppear {
-            // 既存アイテムの場合は値を設定
-            if let item = item {
-                name = item.name
-                time = item.time
-                category = item.category
-                memo = item.memo ?? ""
-                cost = item.cost
-                address = item.address ?? ""
-                isCompleted = item.isCompleted
-                photoData = item.photoData
-                uiImage = item.photo
-                latitude = item.latitude
-                longitude = item.longitude
-            } else {
-                // 新規作成の場合は選択中の日付にセット
-                time = Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: schedule.date) ?? Date()
-            }
+            // ModelContextを更新
+            viewModel.modelContext = modelContext
+            // dismissActionを設定
+            viewModel.dismissAction = dismiss
         }
-    }
-
-    // カテゴリーコードから名前を取得
-    private func getCategoryName(for code: String) -> String {
-        categories.first(where: { $0.0 == code })?.1 ?? "その他"
-    }
-
-    // カテゴリーコードからアイコンを取得
-    private func getCategoryIcon(for code: String) -> String {
-        categories.first(where: { $0.0 == code })?.2 ?? "mappin"
-    }
-
-    // アイテム保存処理
-    private func saveItem() {
-        if let item = item {
-            // 既存アイテムの更新
-            item.name = name
-            item.time = time
-            item.category = category
-            item.memo = memo.isEmpty ? nil : memo
-            item.cost = cost
-            item.address = address.isEmpty ? nil : address
-            item.isCompleted = isCompleted
-            item.photoData = photoData
-            item.latitude = latitude
-            item.longitude = longitude
-            item.updatedAt = Date()
-        } else {
-            // 新規アイテムの作成
-            let newItem = PlanItem(
-                time: time,
-                category: category,
-                name: name,
-                memo: memo.isEmpty ? nil : memo,
-                cost: cost,
-                photoData: photoData,
-                latitude: latitude,
-                longitude: longitude,
-                address: address.isEmpty ? nil : address,
-                createdAt: Date(),
-                updatedAt: Date(),
-                isCompleted: isCompleted
-            )
-
-            // リレーションを設定
-            newItem.schedule = schedule
-            schedule.items?.append(newItem)
-        }
-
-        dismiss()
     }
 }
 

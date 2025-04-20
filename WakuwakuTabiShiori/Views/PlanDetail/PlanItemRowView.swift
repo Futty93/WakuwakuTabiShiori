@@ -14,6 +14,17 @@ struct PlanItemRowView: View {
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
 
+    // ViewModel
+    @StateObject private var viewModel: PlanItemViewModel
+
+    init(item: PlanItem) {
+        self.item = item
+        self._viewModel = StateObject(wrappedValue: PlanItemViewModel(
+            item: item,
+            modelContext: ModelContext(try! ModelContainer(for: Plan.self))
+        ))
+    }
+
     // 時間フォーマッター
     private let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -32,15 +43,8 @@ struct PlanItemRowView: View {
 
     // カテゴリーに基づく色の取得
     private var categoryColor: Color {
-        switch item.category {
-        case "transport": return .blue
-        case "meal": return .orange
-        case "sightseeing": return .green
-        case "hotel": return .purple
-        case "activity": return .pink
-        case "shopping": return .red
-        default: return .gray
-        }
+        // Color+Themesの拡張メソッドを使用
+        Color.fromCategory(item.category)
     }
 
     var body: some View {
@@ -76,7 +80,7 @@ struct PlanItemRowView: View {
                         .fill(categoryColor.opacity(0.2))
                         .frame(width: 40, height: 40)
 
-                    Image(systemName: item.categoryIcon)
+                    Image(systemName: Color.iconForCategory(item.category))
                         .font(.system(size: 20))
                         .foregroundColor(categoryColor)
                 }
@@ -151,16 +155,17 @@ struct PlanItemRowView: View {
         .alert("予定を削除", isPresented: $showingDeleteAlert) {
             Button("キャンセル", role: .cancel) { }
             Button("削除", role: .destructive) {
-                deleteItem()
+                viewModel.deleteItem()
             }
         } message: {
             Text("この予定を削除してもよろしいですか？")
         }
-    }
-
-    // 項目の削除
-    private func deleteItem() {
-        modelContext.delete(item)
+        .onAppear {
+            // ModelContextを更新
+            viewModel.modelContext = modelContext
+            // 最新のitem参照を使用
+            viewModel.item = item
+        }
     }
 }
 

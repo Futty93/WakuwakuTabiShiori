@@ -17,13 +17,14 @@ final class Plan {
     var themeName: String // テーマ識別子 (例: "Sea", "Cafe")
     var themeColorData: Data? // Colorを直接保存できないためDataに変換
     var budget: Double? // 目安予算 (任意)
+    var memo: String?
     var memberIds: [String] = [] // ユーザーID配列（将来的にはUserモデルへの参照）
     @Relationship(deleteRule: .cascade) var schedules: [Schedule]? = [] // 日程リスト (Planが消えたらScheduleも消す)
     var createdAt: Date // 作成日時 (ソート用)
     var updatedAt: Date // 更新日時
     var isShared: Bool = false // 共有されているかどうか
 
-    init(id: UUID = UUID(), title: String = "", startDate: Date = Date(), endDate: Date = Date(), themeName: String = "Default", themeColorData: Data? = nil, budget: Double? = nil, memberIds: [String] = [], createdAt: Date = Date(), updatedAt: Date = Date(), isShared: Bool = false) {
+    init(id: UUID = UUID(), title: String = "", startDate: Date = Date(), endDate: Date = Date(), themeName: String = "Default", themeColorData: Data? = nil, budget: Double? = nil, memo: String? = nil, memberIds: [String] = [], createdAt: Date = Date(), updatedAt: Date = Date(), isShared: Bool = false) {
         self.id = id
         self.title = title
         self.startDate = startDate
@@ -31,6 +32,7 @@ final class Plan {
         self.themeName = themeName
         self.themeColorData = themeColorData
         self.budget = budget
+        self.memo = nil
         self.memberIds = memberIds
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -40,21 +42,16 @@ final class Plan {
     // テーマカラーを取得するComputed Property
     var themeColor: Color {
         get {
-            if let colorData = themeColorData,
-               let uiColor = try? NSKeyedUnarchiver.unarchivedObject(ofClass: UIColor.self, from: colorData) {
-                return Color(uiColor)
+            // Color+Themesの拡張メソッドを使用
+            if let colorData = themeColorData {
+                return Color.fromData(colorData)
             }
-            // デフォルトカラー
-            return Color.orange
+            // データがなければテーマ名から色を取得
+            return Color.fromThemeName(themeName)
         }
         set {
-            let uiColor = UIColor(newValue)
-            do {
-                let data = try NSKeyedArchiver.archivedData(withRootObject: uiColor, requiringSecureCoding: true)
-                self.themeColorData = data
-            } catch {
-                print("Error saving color data: \(error)")
-            }
+            // Color+Themesの拡張メソッドを使用して変換
+            themeColorData = newValue.toData()
         }
     }
 
