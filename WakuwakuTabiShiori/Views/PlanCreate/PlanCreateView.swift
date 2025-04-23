@@ -21,10 +21,12 @@ struct PlanCreateView: View {
 
     init(plan: Plan? = nil) {
         self.plan = plan
+        // ViewModelの初期化（modelContextはonAppearで環境から取得したものに置き換える）
+        // 一時的なModelContextを使用し、初期化エラーを避ける
+        let temporaryContainer = try! ModelContainer(for: Plan.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         self._viewModel = StateObject(wrappedValue: PlanCreateViewModel(
-            modelContext: ModelContext(try! ModelContainer(for: Plan.self)),
-            plan: plan,
-            dismiss: { }
+            modelContext: ModelContext(temporaryContainer),
+            plan: plan
         ))
     }
 
@@ -110,8 +112,7 @@ struct PlanCreateView: View {
                 // 保存ボタン
                 Section {
                     Button {
-                        // ViewModelのdismissActionを再設定してから保存処理を呼び出し
-                        viewModel.dismissAction = dismiss
+                        // 保存処理を呼び出し
                         viewModel.savePlan()
                     } label: {
                         Text(plan == nil ? "旅行プランを作成" : "更新")
@@ -134,7 +135,7 @@ struct PlanCreateView: View {
                 }
             }
             .onAppear {
-                // ModelContextを最新のものに更新
+                // ModelContextを最新のものに更新（@Environmentから取得）
                 viewModel.modelContext = modelContext
                 // Dismissアクションの更新
                 viewModel.dismissAction = dismiss

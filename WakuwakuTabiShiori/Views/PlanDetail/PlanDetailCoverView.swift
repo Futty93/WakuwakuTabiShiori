@@ -18,9 +18,12 @@ struct PlanDetailCoverView: View {
 
     init(plan: Plan) {
         self.plan = plan
+        // ViewModelの初期化（modelContextはonAppearで環境から取得したものに置き換える）
+        // 一時的なModelContextを使用し、初期化エラーを避ける
+        let temporaryContainer = try! ModelContainer(for: Plan.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         self._viewModel = StateObject(wrappedValue: PlanDetailViewModel(
             plan: plan,
-            modelContext: ModelContext(try! ModelContainer(for: Plan.self))
+            modelContext: ModelContext(temporaryContainer)
         ))
     }
 
@@ -65,7 +68,7 @@ struct PlanDetailCoverView: View {
         }
         .background(Color(.systemGroupedBackground))
         .onAppear {
-            // ModelContextを更新
+            // ModelContextを更新（@Environmentから取得）
             viewModel.modelContext = modelContext
             // プランへの参照も最新に更新
             viewModel.plan = plan

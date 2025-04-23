@@ -8,6 +8,7 @@
 import SwiftData
 import SwiftUI
 import CoreLocation
+import UIKit
 
 @Model
 final class PlanItem {
@@ -57,10 +58,10 @@ final class PlanItem {
         }
     }
 
-    // 写真をUIImageに変換
+    // photoDataから変換したUIImageを返す計算プロパティ
     var photo: UIImage? {
-        if let data = photoData {
-            return UIImage(data: data)
+        if let photoData = photoData {
+            return UIImage(data: photoData)
         }
         return nil
     }

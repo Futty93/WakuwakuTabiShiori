@@ -132,7 +132,7 @@ struct TopView: View {
                 viewModel.refreshAfterCreate()
             } content: {
                 NavigationStack {
-                    NewPlanView()
+                    PlanCreateView()
                 }
             }
             .onAppear {

@@ -27,12 +27,14 @@ struct PlanItemEditView: View {
         self.item = item
         self.schedule = schedule
         self.plan = plan
+        // ViewModelの初期化（modelContextはonAppearで環境から取得したものに置き換える）
+        // 一時的なModelContextを使用し、初期化エラーを避ける
+        let temporaryContainer = try! ModelContainer(for: PlanItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         self._viewModel = StateObject(wrappedValue: PlanItemEditViewModel(
-            modelContext: ModelContext(try! ModelContainer(for: Plan.self)),
+            modelContext: ModelContext(temporaryContainer),
             item: item,
             schedule: schedule,
-            plan: plan,
-            dismiss: { }
+            plan: plan
         ))
     }
 
@@ -155,8 +157,7 @@ struct PlanItemEditView: View {
             // 保存ボタン
             Section {
                 Button {
-                    // ViewModelのdismissActionを再設定してから保存処理を呼び出し
-                    viewModel.dismissAction = dismiss
+                    // 保存処理を呼び出し
                     viewModel.saveItem()
                 } label: {
                     Text("保存")

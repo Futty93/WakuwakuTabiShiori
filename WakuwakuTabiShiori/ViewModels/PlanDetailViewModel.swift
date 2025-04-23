@@ -60,6 +60,15 @@ class PlanItemViewModel: ObservableObject {
     // 項目の削除
     func deleteItem() {
         modelContext.delete(item)
+
+        do {
+            try modelContext.save()
+            // UIの更新を通知
+            NotificationCenter.default.post(name: Notification.Name("PlanDataChanged"), object: nil)
+            print("Item Deleted: \(item.name)")
+        } catch {
+            print("Error deleting item: \(error)")
+        }
     }
 }
 
@@ -89,7 +98,7 @@ class PlanItemEditViewModel: ObservableObject {
     private var plan: Plan?
     var dismissAction: DismissAction?
 
-    init(modelContext: ModelContext, item: PlanItem? = nil, schedule: Schedule, plan: Plan?, dismiss: @escaping () -> Void) {
+    init(modelContext: ModelContext, item: PlanItem? = nil, schedule: Schedule, plan: Plan?, dismiss: DismissAction? = nil) {
         self.modelContext = modelContext
         self.item = item
         self.schedule = schedule
@@ -154,6 +163,8 @@ class PlanItemEditViewModel: ObservableObject {
             item.latitude = latitude
             item.longitude = longitude
             item.updatedAt = Date()
+
+            print("Item Updated: \(item.name)")
         } else {
             // 新規アイテムの作成
             let newItem = PlanItem(
@@ -174,8 +185,19 @@ class PlanItemEditViewModel: ObservableObject {
             // リレーションを設定
             newItem.schedule = schedule
             schedule.items?.append(newItem)
+
+            print("New Item Created: \(newItem.name)")
         }
 
-        dismissAction()
+        // データを保存
+        do {
+            try modelContext.save()
+            // UIの更新を通知
+            NotificationCenter.default.post(name: Notification.Name("PlanDataChanged"), object: nil)
+        } catch {
+            print("Error saving item: \(error)")
+        }
+
+        dismissAction?()
     }
 }

@@ -19,9 +19,12 @@ struct PlanItemRowView: View {
 
     init(item: PlanItem) {
         self.item = item
+        // ViewModelの初期化（modelContextはonAppearで環境から取得したものに置き換える）
+        // 一時的なModelContextを使用し、初期化エラーを避ける
+        let temporaryContainer = try! ModelContainer(for: PlanItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         self._viewModel = StateObject(wrappedValue: PlanItemViewModel(
             item: item,
-            modelContext: ModelContext(try! ModelContainer(for: Plan.self))
+            modelContext: ModelContext(temporaryContainer)
         ))
     }
 
@@ -161,7 +164,7 @@ struct PlanItemRowView: View {
             Text("この予定を削除してもよろしいですか？")
         }
         .onAppear {
-            // ModelContextを更新
+            // 環境から取得した本物のModelContextをViewModelに設定
             viewModel.modelContext = modelContext
             // 最新のitem参照を使用
             viewModel.item = item

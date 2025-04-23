@@ -21,7 +21,7 @@ class PlanCreateViewModel: ObservableObject {
     private var plan: Plan?
     var dismissAction: DismissAction?
 
-    init(modelContext: ModelContext, plan: Plan? = nil, dismiss: @escaping () -> Void) {
+    init(modelContext: ModelContext, plan: Plan? = nil, dismiss: DismissAction? = nil) {
         self.modelContext = modelContext
         self.plan = plan
         self.dismissAction = dismiss
@@ -65,6 +65,7 @@ class PlanCreateViewModel: ObservableObject {
 
             // 日程の更新（日数が変わった場合）
             updateSchedules(for: plan)
+            print("Plan Updated: \(plan)")
         } else {
             // 新規プランの作成
             let newPlan = Plan(
@@ -82,9 +83,16 @@ class PlanCreateViewModel: ObservableObject {
 
             // 日程を生成
             createSchedules(for: newPlan)
+
+            try? modelContext.save()
+
+            // UIの更新を通知
+            NotificationCenter.default.post(name: Notification.Name("PlanDataChanged"), object: nil)
+
+            print("New Plan Created: \(newPlan)")
         }
 
-        dismissAction()
+        dismissAction?()
     }
 
     // 日程の生成

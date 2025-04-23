@@ -195,12 +195,12 @@ struct PlanEditView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingThemeSelection) {
-            NavigationStack {
-                ThemeSelectionView(selectedThemeName: $themeName, selectedColor: $themeColor)
-            }
-            .presentationDetents([.medium, .large])
-        }
+//        .sheet(isPresented: $showingThemeSelection) {
+//            NavigationStack {
+//                ThemeSelectionView(selectedThemeName: $themeName, selectedColor: $themeColor)
+//            }
+//            .presentationDetents([.medium, .large])
+//        }
         .alert("確認", isPresented: $showConfirmationDialog) {
             Button("キャンセル", role: .cancel) { }
             Button("再生成") {
