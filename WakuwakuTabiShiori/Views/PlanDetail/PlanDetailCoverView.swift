@@ -170,10 +170,22 @@ struct PlanDetailCoverView: View {
                     memberIcon(name: "あなた", isCurrentUser: true)
 
                     // 他のメンバー（仮）
-                    if plan.memberIds.count > 1 {
-                        ForEach(plan.memberIds.dropFirst(), id: \.self) { _ in
-                            // 実際にはUserデータからアバターや名前を取得
-                            memberIcon(name: "ゲスト", isCurrentUser: false)
+                    // plan.memberIds が nil でないことを確認し、安全にアンラップ
+                    if let memberIds = plan.memberIds, !memberIds.isEmpty {
+                        // 他のメンバーがいる場合のみ表示 (自分自身を除く)
+                        // ※ dropFirst() だと自分自身も表示される可能性があるため、
+                        //   より正確には自分のIDを除外するなどの処理が必要だが、
+                        //   ここでは仮実装として memberIds が空でないかで判定
+                        // ※ 将来的にUserモデルを使う場合はここのロジックが変わる
+
+                        // memberIds 配列からメンバーアイコンを表示
+                        ForEach(memberIds, id: \.self) { memberId in
+                            // TODO: 実際には memberId を使ってユーザー情報を取得し表示する
+                            // 例: if memberId != myUserId { memberIcon(...) }
+                            // 今は仮でゲスト表示
+                            if memberId != "currentUserIdentifierPlaceholder" { // 仮の自分のIDと比較
+                                memberIcon(name: "ゲスト", isCurrentUser: false)
+                            }
                         }
                     }
 

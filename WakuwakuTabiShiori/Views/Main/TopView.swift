@@ -130,6 +130,8 @@ struct TopView: View {
             .sheet(isPresented: $showingNewPlanSheet) {
                 // シートが閉じられた時の処理
                 viewModel.refreshAfterCreate()
+                print("New plan sheet dismissed. Refreshing data...") // デバッグ用ログ (任意)
+                viewModel.fetchPlans() // ← データを再取得するメソッドを呼び出す
             } content: {
                 NavigationStack {
                     PlanCreateView()
