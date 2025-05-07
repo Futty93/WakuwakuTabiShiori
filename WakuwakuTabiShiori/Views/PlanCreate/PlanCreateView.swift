@@ -12,13 +12,13 @@ import UIKit
 struct PlanCreateView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    
+
     // 編集中のプラン（新規作成時はnil）
     var plan: Plan?
-    
+
     // ViewModel
     @StateObject private var viewModel: PlanCreateViewModel
-    
+
     init(plan: Plan? = nil) {
         self.plan = plan
         // ViewModelの初期化（modelContextはonAppearで環境から取得したものに置き換える）
@@ -26,28 +26,27 @@ struct PlanCreateView: View {
         let temporaryContainer = try! ModelContainer(for: Plan.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         self._viewModel = StateObject(wrappedValue: PlanCreateViewModel(
             modelContext: ModelContext(temporaryContainer)
-            //            plan: plan
         ))
     }
-    
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(.systemGroupedBackground)
                     .ignoresSafeArea()
-                
+
                 VStack {
                     Form {
                         Section {
                             TextField("旅行タイトル（必須）", text: $viewModel.title)
                                 .font(.headline)
-                            
+
                             DatePicker("開始日", selection: $viewModel.startDate, displayedComponents: .date)
                             DatePicker("終了日", selection: $viewModel.endDate, in: viewModel.startDate..., displayedComponents: .date)
                         } header: {
                             sectionHeader("基本情報")
                         }
-                        
+
                         Section {
                             themePickerSection
                             ColorPicker("テーマカラー", selection: $viewModel.themeColor)
@@ -55,7 +54,7 @@ struct PlanCreateView: View {
                         } header: {
                             sectionHeader("テーマと予算")
                         }
-                        
+
                         Section {
                             memoInput
                         } header: {
@@ -64,11 +63,21 @@ struct PlanCreateView: View {
                     }
                     .scrollContentBackground(.hidden) // Formの背景を透明に
                     .background(Color.clear)
-                    
+
+                    // バリデーションエラー表示
+                    if let error = viewModel.validationError {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .font(.caption)
+                            .padding(.horizontal)
+                            .padding(.bottom, 4)
+                    }
+
                     // ボタンは常に下に固定
                     Button(action: {
-                        viewModel.addPlan()
-                        dismiss()
+                        if viewModel.addPlan() {
+                            dismiss()
+                        }
                     }) {
                         Text(plan == nil ? "旅行プランを作成" : "更新")
                             .font(.headline)
@@ -91,10 +100,25 @@ struct PlanCreateView: View {
                     }
                 }
             }
+            .onAppear {
+                // 環境から取得したModelContextに置き換える
+                viewModel.updateModelContext(modelContext)
+
+                // 編集モードの場合、既存のプランデータを設定
+                if let plan = plan {
+                    viewModel.title = plan.title
+                    viewModel.startDate = plan.startDate
+                    viewModel.endDate = plan.endDate
+                    viewModel.themeName = plan.themeName
+                    viewModel.themeColor = plan.themeColor
+                    viewModel.budget = plan.budget
+                    viewModel.memo = plan.memo ?? ""
+                }
+            }
         }
     }
-    
-    
+
+
     @ViewBuilder
     func sectionHeader(_ text: String) -> some View {
         Text(text)
@@ -102,7 +126,7 @@ struct PlanCreateView: View {
             .foregroundColor(viewModel.themeColor)
             .textCase(nil)
     }
-    
+
     var themePickerSection: some View {
         HStack {
             Text("テーマ")
@@ -129,7 +153,7 @@ struct PlanCreateView: View {
             }
         }
     }
-    
+
     var budgetInput: some View {
         HStack {
             Text("¥")
@@ -137,7 +161,7 @@ struct PlanCreateView: View {
                 .keyboardType(.numberPad)
         }
     }
-    
+
     var memoInput: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("メモ（任意）")
