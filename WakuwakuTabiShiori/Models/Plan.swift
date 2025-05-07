@@ -10,7 +10,6 @@ import SwiftUI
 
 @Model
 final class Plan {
-    var id: UUID
     var title: String
     var startDate: Date
     var endDate: Date
@@ -19,15 +18,16 @@ final class Plan {
     var budget: Double? // 目安予算 (任意)
     var memo: String?
     private var memberIdsData: Data? // ユーザーID配列（将来的にはUserモデルへの参照）
-    @Relationship(deleteRule: .cascade) var schedules: [Schedule]? = [] // 日程リスト (Planが消えたらScheduleも消す)
+    
+    @Relationship(deleteRule: .cascade, inverse: \Schedule.plan)
+    var schedules: [Schedule] = [] // 日程リスト (Planが消えたらScheduleも消す)
     var createdAt: Date // 作成日時 (ソート用)
     var updatedAt: Date // 更新日時
     var isShared: Bool = false // 共有されているかどうか
     
 
-    init(id: UUID = UUID(), title: String = "", startDate: Date = Date(), endDate: Date = Date(), themeName: String = "Default", themeColorData: Data? = nil, budget: Double? = nil, memo: String? = nil, memberIds: [String] = [], createdAt: Date = Date(), updatedAt: Date = Date(), isShared: Bool = false) {
+    init(title: String = "", startDate: Date = Date(), endDate: Date = Date(), themeName: String = "Default", themeColorData: Data? = nil, budget: Double? = nil, memo: String? = nil, memberIds: [String] = [], createdAt: Date = Date(), updatedAt: Date = Date(), isShared: Bool = false) {
             // --- まず全ての格納プロパティを初期化 ---
-            self.id = id
             self.title = title
             self.startDate = startDate
             self.endDate = endDate
@@ -103,7 +103,7 @@ final class Plan {
         guard let totalBudget = budget, totalBudget > 0 else { return nil }
 
         var totalCost: Double = 0
-        schedules?.forEach { schedule in
+        schedules.forEach { schedule in
             schedule.items?.forEach { item in
                 if let cost = item.cost {
                     totalCost += cost

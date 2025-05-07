@@ -10,33 +10,18 @@ import SwiftData
 
 @main
 struct WakuwakuTabiShioriApp: App {
-    // SwiftDataモデルコンテナの生成
-    let modelContainer: ModelContainer
-
-    init() {
+    var sharedModelContainer: ModelContainer = {
+        let schema = Schema([
+            PlanItem.self
+        ])
+        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        
         do {
-            // 本番用の設定
-            let schema = Schema([Plan.self, Schedule.self, PlanItem.self])
-
-            // CloudKitとの統合を準備（将来の拡張用）
-            let modelConfiguration = ModelConfiguration(
-                schema: schema,
-                isStoredInMemoryOnly: false,
-                cloudKitDatabase: .automatic // 将来的にCloudKitと統合する準備
-            )
-
-            modelContainer = try ModelContainer(
-                for: schema,
-                configurations: [modelConfiguration]
-            )
-
-            print("SwiftData model container initialized successfully")
+            return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
-            // 初期化に失敗した場合のフォールバック
-            print("Failed to initialize SwiftData model container: \(error)")
-            fatalError("Failed to initialize SwiftData model container")
+            fatalError("Could not create ModelContainer: \(error)")
         }
-    }
+    }()
 
     var body: some Scene {
         WindowGroup {
@@ -44,6 +29,6 @@ struct WakuwakuTabiShioriApp: App {
             TopView()
                 .environment(\.colorScheme, .light) // 常にライトモードで表示
         }
-        .modelContainer(modelContainer)
+        .modelContainer(sharedModelContainer)
     }
 }

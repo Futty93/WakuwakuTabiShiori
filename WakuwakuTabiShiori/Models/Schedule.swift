@@ -10,17 +10,16 @@ import SwiftUI
 
 @Model
 final class Schedule {
-    var id: UUID
     var date: Date
     var title: String? // 日程のタイトル（例：「1日目：東京観光」）
-    @Relationship(deleteRule: .cascade) var items: [PlanItem]? = [] // 場所・予定リスト
+    @Relationship(deleteRule: .cascade, inverse: \PlanItem.schedule)
+    var items: [PlanItem]? = [] // 場所・予定リスト
     var plan: Plan? // どのPlanに属するか (逆リレーション)
     var notes: String? // その日のメモ
     var createdAt: Date // 作成日時
     var updatedAt: Date // 更新日時
 
-    init(id: UUID = UUID(), date: Date = Date(), title: String? = nil, notes: String? = nil, createdAt: Date = Date(), updatedAt: Date = Date()) {
-        self.id = id
+    init( date: Date = Date(), title: String? = nil, notes: String? = nil, createdAt: Date = Date(), updatedAt: Date = Date()) {
         self.date = date
         self.title = title
         self.notes = notes

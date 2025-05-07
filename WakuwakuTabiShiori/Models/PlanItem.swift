@@ -12,7 +12,6 @@ import UIKit
 
 @Model
 final class PlanItem {
-    var id: UUID
     var time: Date
     var category: String // 例: "transport", "meal", "sightseeing"
     var name: String
@@ -28,8 +27,7 @@ final class PlanItem {
     var updatedAt: Date
     var isCompleted: Bool = false // タスク完了フラグ（やることリスト用）
 
-    init(id: UUID = UUID(), time: Date = Date(), category: String = "other", name: String = "", memo: String? = nil, cost: Double? = nil, photoData: Data? = nil, latitude: Double? = nil, longitude: Double? = nil, address: String? = nil, url: URL? = nil, createdAt: Date = Date(), updatedAt: Date = Date(), isCompleted: Bool = false) {
-        self.id = id
+    init(time: Date = Date(), category: String = "other", name: String = "", memo: String? = nil, cost: Double? = nil, photoData: Data? = nil, latitude: Double? = nil, longitude: Double? = nil, address: String? = nil, url: URL? = nil, createdAt: Date = Date(), updatedAt: Date = Date(), isCompleted: Bool = false) {
         self.time = time
         self.category = category
         self.name = name

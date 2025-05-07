@@ -1,10 +1,10 @@
-//  旅行プラン作成画面
-//  PlanCreateView.swift
-//  WakuwakuTabiShiori
+////  旅行プラン作成画面
+////  PlanCreateView.swift
+////  WakuwakuTabiShiori
+////
+////  Created by 二渡和輝 on 2025/04/19.
+////
 //
-//  Created by 二渡和輝 on 2025/04/19.
-//
-
 import SwiftUI
 import SwiftData
 import UIKit
@@ -12,118 +12,75 @@ import UIKit
 struct PlanCreateView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-
+    
     // 編集中のプラン（新規作成時はnil）
     var plan: Plan?
-
+    
     // ViewModel
     @StateObject private var viewModel: PlanCreateViewModel
-
+    
     init(plan: Plan? = nil) {
         self.plan = plan
         // ViewModelの初期化（modelContextはonAppearで環境から取得したものに置き換える）
         // 一時的なModelContextを使用し、初期化エラーを避ける
         let temporaryContainer = try! ModelContainer(for: Plan.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         self._viewModel = StateObject(wrappedValue: PlanCreateViewModel(
-            modelContext: ModelContext(temporaryContainer),
-            plan: plan
+            modelContext: ModelContext(temporaryContainer)
+            //            plan: plan
         ))
     }
-
+    
     var body: some View {
         NavigationStack {
-            Form {
-                // 基本情報セクション
-                Section {
-                    TextField("旅行タイトル（必須）", text: $viewModel.title)
-                        .font(.headline)
-
-                    // 日程選択
-                    DatePicker("開始日", selection: $viewModel.startDate, displayedComponents: .date)
-                    DatePicker("終了日", selection: $viewModel.endDate, displayedComponents: .date)
-                        .onChange(of: viewModel.startDate) { oldValue, newValue in
-                            if viewModel.endDate < newValue {
-                                viewModel.endDate = newValue
-                            }
+            ZStack {
+                Color(.systemGroupedBackground)
+                    .ignoresSafeArea()
+                
+                VStack {
+                    Form {
+                        Section {
+                            TextField("旅行タイトル（必須）", text: $viewModel.title)
+                                .font(.headline)
+                            
+                            DatePicker("開始日", selection: $viewModel.startDate, displayedComponents: .date)
+                            DatePicker("終了日", selection: $viewModel.endDate, in: viewModel.startDate..., displayedComponents: .date)
+                        } header: {
+                            sectionHeader("基本情報")
                         }
-                } header: {
-                    Text("基本情報")
-                        .foregroundColor(viewModel.themeColor)
-                }
-
-                // テーマセクション
-                Section {
-                    // テーマ選択
-                    HStack {
-                        Text("テーマ")
-                        Spacer()
-                        Menu {
-                            ForEach(Color.themePresets, id: \.name) { name, icon, color in
-                                Button {
-                                    viewModel.themeName = name
-                                    viewModel.themeColor = color
-                                } label: {
-                                    Label(name, systemImage: icon)
-                                }
-                            }
-                        } label: {
-                            HStack {
-                                Image(systemName: Color.iconNameForTheme(viewModel.themeName))
-                                    .foregroundColor(viewModel.themeColor)
-                                Text(viewModel.themeName)
-                                    .foregroundColor(.primary)
-                                Image(systemName: "chevron.down")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
+                        
+                        Section {
+                            themePickerSection
+                            ColorPicker("テーマカラー", selection: $viewModel.themeColor)
+                            budgetInput
+                        } header: {
+                            sectionHeader("テーマと予算")
+                        }
+                        
+                        Section {
+                            memoInput
+                        } header: {
+                            sectionHeader("メモ")
                         }
                     }
-
-                    // カラーピッカー
-                    ColorPicker("テーマカラー", selection: $viewModel.themeColor)
-
-                    // 予算設定
-                    HStack {
-                        Text("¥")
-                        TextField("予算（任意）", value: $viewModel.budget, format: .number)
-                            .keyboardType(.numberPad)
-                    }
-                } header: {
-                    Text("テーマと予算")
-                        .foregroundColor(viewModel.themeColor)
-                }
-
-                // メモセクション
-                Section {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("メモ（任意）")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        TextEditor(text: $viewModel.memo)
-                            .frame(minHeight: 100)
-                    }
-                    .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
-                } header: {
-                    Text("メモ")
-                        .foregroundColor(viewModel.themeColor)
-                }
-
-                // 保存ボタン
-                Section {
-                    Button {
-                        // 保存処理を呼び出し
-                        viewModel.savePlan()
-                    } label: {
+                    .scrollContentBackground(.hidden) // Formの背景を透明に
+                    .background(Color.clear)
+                    
+                    // ボタンは常に下に固定
+                    Button(action: {
+                        viewModel.addPlan()
+                        dismiss()
+                    }) {
                         Text(plan == nil ? "旅行プランを作成" : "更新")
-                            .bold()
+                            .font(.headline)
                             .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.green)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                            .shadow(color: .gray.opacity(0.3), radius: 5, x: 0, y: 3)
                     }
-                    .listRowBackground(viewModel.isFormValid ? viewModel.themeColor : Color.gray.opacity(0.3))
-                    .foregroundColor(.white)
-                    .disabled(!viewModel.isFormValid)
+                    .padding([.horizontal, .bottom])
                 }
-                .listRowInsets(EdgeInsets())
             }
             .navigationTitle(plan == nil ? "新規旅行プラン" : "プランを編集")
             .navigationBarTitleDisplayMode(.inline)
@@ -134,22 +91,65 @@ struct PlanCreateView: View {
                     }
                 }
             }
-            .onAppear {
-                // ModelContextを最新のものに更新（@Environmentから取得）
-                viewModel.modelContext = modelContext
-                // Dismissアクションの更新
-                viewModel.dismissAction = dismiss
+        }
+    }
+    
+    
+    @ViewBuilder
+    func sectionHeader(_ text: String) -> some View {
+        Text(text)
+            .font(.subheadline)
+            .foregroundColor(viewModel.themeColor)
+            .textCase(nil)
+    }
+    
+    var themePickerSection: some View {
+        HStack {
+            Text("テーマ")
+            Spacer()
+            Menu {
+                ForEach(Color.themePresets, id: \.name) { name, icon, color in
+                    Button {
+                        viewModel.themeName = name
+                        viewModel.themeColor = color
+                    } label: {
+                        Label(name, systemImage: icon)
+                    }
+                }
+            } label: {
+                HStack {
+                    Image(systemName: Color.iconNameForTheme(viewModel.themeName))
+                        .foregroundColor(viewModel.themeColor)
+                    Text(viewModel.themeName)
+                        .foregroundColor(.primary)
+                    Image(systemName: "chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
             }
         }
     }
-}
-
-#Preview {
-    @Previewable @State var isPresented = true
-
-    let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Plan.self, configurations: config)
-
-    return PlanCreateView()
-        .modelContainer(container)
+    
+    var budgetInput: some View {
+        HStack {
+            Text("¥")
+            TextField("予算（任意）", value: $viewModel.budget, format: .number)
+                .keyboardType(.numberPad)
+        }
+    }
+    
+    var memoInput: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("メモ（任意）")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            TextEditor(text: $viewModel.memo)
+                .frame(minHeight: 100)
+                .padding(4)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color(.systemGray4), lineWidth: 1)
+                )
+        }
+    }
 }

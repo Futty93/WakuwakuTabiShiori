@@ -14,7 +14,9 @@ class PlanDetailViewModel: ObservableObject {
 
     // 使用済み予算を計算
     func calculateUsedBudget() -> Double? {
-        guard let schedules = plan.schedules else { return nil }
+        guard !plan.schedules.isEmpty else { return nil }
+        
+        let schedules: [Schedule] = plan.schedules.sorted { $0.date < $1.date }
 
         var total: Double = 0
         for schedule in schedules {
