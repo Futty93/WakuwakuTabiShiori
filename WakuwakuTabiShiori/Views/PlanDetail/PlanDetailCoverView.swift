@@ -126,55 +126,55 @@ struct PlanDetailCoverView: View {
 
     // 情報セクション
     private var infoSection: some View {
-        NavigationLink(destination: PlanDetailScheduleListView(plan: plan)) {
-            VStack(alignment: .leading, spacing: 15) {
+        VStack(alignment: .leading, spacing: 15) {
+            NavigationLink(destination: PlanDetailScheduleListView(plan: plan)) {
                 // 期間
                 HStack(alignment: .top) {
                     Image(systemName: "calendar")
                         .foregroundColor(plan.themeColor)
                         .frame(width: 26)
-
+                    
                     VStack(alignment: .leading) {
                         Text("旅行期間")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-
+                        
                         Text("\(dateFormatter.string(from: plan.startDate)) 〜 \(dateFormatter.string(from: plan.endDate))")
                             .font(.headline)
-
+                        
                         Text("\(plan.totalDays)日間")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .padding(.top, 2)
                     }
                 }
-
-                Divider()
-
-                // テーマ
-                HStack {
-                    Image(systemName: "sparkles")
-                        .foregroundColor(plan.themeColor)
-                        .frame(width: 26)
-
-                    VStack(alignment: .leading) {
-                        Text("テーマ")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-
-                        Text(plan.themeName)
-                            .font(.headline)
-                    }
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            Divider()
+            
+            // テーマ
+            HStack {
+                Image(systemName: "sparkles")
+                    .foregroundColor(plan.themeColor)
+                    .frame(width: 26)
+                
+                VStack(alignment: .leading) {
+                    Text("テーマ")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Text(plan.themeName)
+                        .font(.headline)
                 }
             }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemBackground))
-            )
-            .padding()
         }
-        .buttonStyle(PlainButtonStyle())
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.systemBackground))
+        )
+        .padding()
     }
 
     // メンバーセクション

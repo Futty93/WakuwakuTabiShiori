@@ -25,6 +25,16 @@ struct PlanDetailScheduleListView: View {
         return formatter
     }()
 
+    // 現在選択中の日程を取得
+    private var currentSchedule: Schedule {
+        let sortedSchedules = plan.schedules.sorted { $0.date < $1.date }
+        guard !sortedSchedules.isEmpty else {
+            // 日程が存在しない場合は空のScheduleを返す
+            return Schedule(date: Date(), title: "1日目")
+        }
+        return sortedSchedules[selectedDayIndex]
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // 日付選択タブ
@@ -94,7 +104,7 @@ struct PlanDetailScheduleListView: View {
         .sheet(isPresented: $showingAddItemSheet) {
             if let schedule = selectedSchedule {
                 NavigationStack {
-//                    PlanItemEditView(schedule: schedule, plan: plan)
+                   PlanItemEditView(schedule: schedule, plan: plan)
                 }
             }
         }

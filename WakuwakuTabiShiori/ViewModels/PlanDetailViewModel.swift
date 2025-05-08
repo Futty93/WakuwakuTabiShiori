@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import PhotosUI
 
+// MARK: - PlanDetailViewModel
 // 全体的なプラン詳細用ViewModel
 class PlanDetailViewModel: ObservableObject {
     @Published var plan: Plan
@@ -15,7 +16,7 @@ class PlanDetailViewModel: ObservableObject {
     // 使用済み予算を計算
     func calculateUsedBudget() -> Double? {
         guard !plan.schedules.isEmpty else { return nil }
-        
+
         let schedules: [Schedule] = plan.schedules.sorted { $0.date < $1.date }
 
         var total: Double = 0
@@ -49,6 +50,7 @@ class PlanDetailViewModel: ObservableObject {
     }
 }
 
+// MARK: - PlanItemViewModel
 // プラン項目の操作用ViewModel
 class PlanItemViewModel: ObservableObject {
     @Published var item: PlanItem
@@ -74,6 +76,7 @@ class PlanItemViewModel: ObservableObject {
     }
 }
 
+// MARK: - PlanItemEditViewModel
 // プラン項目の編集用ViewModel
 class PlanItemEditViewModel: ObservableObject {
     // フォーム入力状態
@@ -154,41 +157,10 @@ class PlanItemEditViewModel: ObservableObject {
     func saveItem() {
         if let item = item {
             // 既存アイテムの更新
-            item.name = name
-            item.time = time
-            item.category = category
-            item.memo = memo.isEmpty ? nil : memo
-            item.cost = cost
-            item.address = address.isEmpty ? nil : address
-            item.isCompleted = isCompleted
-            item.photoData = photoData
-            item.latitude = latitude
-            item.longitude = longitude
-            item.updatedAt = Date()
-
-            print("Item Updated: \(item.name)")
+            updateExistingItem(item)
         } else {
             // 新規アイテムの作成
-            let newItem = PlanItem(
-                time: time,
-                category: category,
-                name: name,
-                memo: memo.isEmpty ? nil : memo,
-                cost: cost,
-                photoData: photoData,
-                latitude: latitude,
-                longitude: longitude,
-                address: address.isEmpty ? nil : address,
-                createdAt: Date(),
-                updatedAt: Date(),
-                isCompleted: isCompleted
-            )
-
-            // リレーションを設定
-            newItem.schedule = schedule
-            schedule.items?.append(newItem)
-
-            print("New Item Created: \(newItem.name)")
+            createNewItem()
         }
 
         // データを保存
@@ -201,5 +173,53 @@ class PlanItemEditViewModel: ObservableObject {
         }
 
         dismissAction?()
+    }
+
+    // 既存アイテムの更新
+    private func updateExistingItem(_ item: PlanItem) {
+        item.name = name
+        item.time = time
+        item.category = category
+        item.memo = memo.isEmpty ? nil : memo
+        item.cost = cost
+        item.address = address.isEmpty ? nil : address
+        item.isCompleted = isCompleted
+        item.photoData = photoData
+        item.latitude = latitude
+        item.longitude = longitude
+        item.updatedAt = Date()
+
+        print("Item Updated: \(item.name)")
+    }
+
+    // 新規アイテムの作成
+    private func createNewItem() {
+        let newItem = PlanItem(
+            time: time,
+            category: category,
+            name: name,
+            memo: memo.isEmpty ? nil : memo,
+            cost: cost,
+            photoData: photoData,
+            latitude: latitude,
+            longitude: longitude,
+            address: address.isEmpty ? nil : address,
+            createdAt: Date(),
+            updatedAt: Date(),
+            isCompleted: isCompleted
+        )
+
+        // リレーションを設定
+        newItem.schedule = schedule
+
+        // items配列がnilの場合は初期化
+        if schedule.items == nil {
+            schedule.items = []
+        }
+
+        // アイテムを追加
+        schedule.items?.append(newItem)
+
+        print("New Item Created: \(newItem.name)")
     }
 }
