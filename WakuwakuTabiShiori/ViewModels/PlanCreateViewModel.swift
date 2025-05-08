@@ -43,30 +43,45 @@ class PlanCreateViewModel: ObservableObject {
             return false
         }
 
-        // バリデーションエラーをクリア
-        validationError = nil
-
-        // テーマカラーをDataに変換
-        let themeColorData = themeColor.toData()
-
-        let plan = Plan(
+        // 新規Planの作成
+        let newPlan = Plan(
             title: title,
             startDate: startDate,
             endDate: endDate,
             themeName: themeName,
-            themeColorData: themeColorData,
+            themeColorData: themeColor.toData(),
             budget: budget,
-            memo: memo.isEmpty ? nil : memo
+            memo: memo.isEmpty ? nil : memo,
+            createdAt: Date()
         )
 
-        modelContext.insert(plan)
+        // 日程ごとのScheduleを作成
+        let calendar = Calendar.current
+        var currentDate = startDate
+        var dayCount = 1
 
+        while currentDate <= endDate {
+            let schedule = Schedule(
+                date: currentDate,
+                title: "\(dayCount)日目",
+                createdAt: Date()
+            )
+            newPlan.schedules.append(schedule)
+
+            // 次の日へ
+            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? currentDate
+            dayCount += 1
+        }
+
+        // モデルコンテキストに追加
+        modelContext.insert(newPlan)
+
+        // 保存
         do {
             try modelContext.save()
             return true
         } catch {
-            print("Failed to save changes: \(error)")
-            validationError = "保存に失敗しました: \(error.localizedDescription)"
+            print("Error saving plan: \(error)")
             return false
         }
     }
@@ -88,6 +103,7 @@ class PlanCreateViewModel: ObservableObject {
         return max(1, (components.day ?? 0) + 1)
     }
 
+    // 
     private func resetNewPlanForm() {
         title = ""
         startDate = Date()

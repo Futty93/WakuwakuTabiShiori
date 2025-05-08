@@ -13,13 +13,17 @@ struct PlanCardView: View {
     // 現在の日付を比較用に取得 (毎秒更新は不要なので@Stateは使わない)
     private let today = Calendar.current.startOfDay(for: Date())
 
+    // 削除アクション用のクロージャ
+    var onDelete: (() -> Void)?
+
     // --- デザイン設定値 (調整可能) ---
     private var cornerRadius: CGFloat = 20
     private var shadowRadius: CGFloat = 8
     private var shadowY: CGFloat = 5
-    
-    init(plan: Plan) {
+
+    init(plan: Plan, onDelete: (() -> Void)? = nil) {
         self.plan = plan
+        self.onDelete = onDelete
     }
 
     var body: some View {
@@ -31,6 +35,9 @@ struct PlanCardView: View {
             contentLayer
                 .padding() // 内側に余白
 
+            // --- 3. メニューボタン ---
+            menuButton
+                .padding(8)
         }
         .frame(width: 180, height: 220) // カードのサイズを指定 (調整可能)
         .cornerRadius(cornerRadius)
@@ -61,6 +68,42 @@ struct PlanCardView: View {
             return nil // 開始日が過去の場合はnil
         }
         return days
+    }
+
+    // メニューボタン
+    private var menuButton: some View {
+        Menu {
+            // 削除ボタン
+            Button(role: .destructive) {
+                onDelete?()
+            } label: {
+                Label("削除", systemImage: "trash")
+            }
+
+            // 今後追加する可能性のあるメニュー項目
+            // 例：
+            // Button {
+            //     // 編集アクション
+            // } label: {
+            //     Label("編集", systemImage: "pencil")
+            // }
+            //
+            // Button {
+            //     // 共有アクション
+            // } label: {
+            //     Label("共有", systemImage: "square.and.arrow.up")
+            // }
+        } label: {
+            Image(systemName: "ellipsis.circle.fill")
+                .font(.system(size: 24))
+                .foregroundColor(.white.opacity(0.8))
+                .background(
+                    Circle()
+                        .fill(Color.black.opacity(0.2))
+                        .frame(width: 32, height: 32)
+                )
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
     }
 
     // MARK: - View Components
@@ -139,11 +182,11 @@ struct PlanCardView: View {
     // 横スクロールで表示確認
     ScrollView(.horizontal, showsIndicators: false) {
         HStack(spacing: 15) {
-            PlanCardView(plan: samplePlan1)
-            PlanCardView(plan: samplePlan2)
-            PlanCardView(plan: samplePlan3)
-            PlanCardView(plan: samplePlan4) // 過去の予定 (カウントダウンなし)
-            PlanCardView(plan: samplePlan5)
+            PlanCardView(plan: samplePlan1, onDelete: { print("Delete plan 1") })
+            PlanCardView(plan: samplePlan2, onDelete: { print("Delete plan 2") })
+            PlanCardView(plan: samplePlan3, onDelete: { print("Delete plan 3") })
+            PlanCardView(plan: samplePlan4, onDelete: { print("Delete plan 4") })
+            PlanCardView(plan: samplePlan5, onDelete: { print("Delete plan 5") })
         }
         .padding()
     }

@@ -11,6 +11,9 @@ import SwiftData
 struct TopView: View {
     @Environment(\.modelContext) private var modelContext // ModelContextは必要
 
+    // ViewModelを追加
+    @StateObject private var viewModel: PlanCreateViewModel
+
     // ② @QueryでPlanを取得 (ViewModelは不要に)
     @Query(sort: [SortDescriptor(\Plan.startDate, order: .forward)]) // 開始日でソートする例
     private var plans: [Plan]
@@ -24,160 +27,33 @@ struct TopView: View {
     // デバッグ用フラグ
     @State private var showDebugAlert = false
 
-    // ⑤ (変更なし) フィルターされたリストを計算
+    // 初期化時にViewModelを設定
+    init() {
+        // 一時的なModelContextを使用し、初期化エラーを避ける
+        let temporaryContainer = try! ModelContainer(for: Plan.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        self._viewModel = StateObject(wrappedValue: PlanCreateViewModel(
+            modelContext: ModelContext(temporaryContainer)
+        ))
+    }
+
+    // フィルターされたリストを計算
     private var upcomingPlans: [Plan] {
         let now = Date()
-        // @Queryの結果である plans を直接フィルター
         return plans.filter { $0.endDate >= now }
-           // .sorted { $0.startDate < $1.startDate } // @Queryでソート済みなら不要かも
     }
 
     private var pastPlans: [Plan] {
         let now = Date()
         return plans.filter { $0.endDate < now }
-           // .sorted { $0.endDate > $1.endDate } // 必要ならソート
     }
 
-    // ⑥ (変更なし) 表示用リスト
+    // 表示用リスト
     private var displayedPlans: [Plan] {
         switch currentFilter {
         case .upcoming:
             return upcomingPlans
         case .past:
             return pastPlans
-        }
-    }
-
-    // ⑦ (変更なし) initは不要になる (ViewModelを初期化しないため)
-    // init(modelContext: ModelContext) { ... } <- 不要
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                // ⑧ Pickerのバインディングを @State の currentFilter に変更
-                Picker("フィルター", selection: $currentFilter) {
-                    // PlanFilter.allCases を使って動的に生成 (rawValueを使用)
-                    ForEach(PlanFilter.allCases, id: \.self) { filter in
-                        Text(filter.rawValue).tag(filter)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                .background(Color(.systemBackground))
-                // .onChange は不要 (バインディングで直接状態が変わるため)
-
-                // ⑨ エラー/ローディング表示 (シンプル化)
-                // @Queryがロード中/エラーの状態を持つわけではないので、
-                // 基本的に表示リストの有無で判断する。
-                // もし削除時などにエラーを表示したい場合は別途@State変数を用意する
-                if displayedPlans.isEmpty {
-                    Spacer()
-                    VStack(spacing: 20) {
-                        Image(systemName: "map")
-                            .font(.system(size: 70))
-                            .foregroundColor(.gray)
-                        Text(currentFilter == .upcoming ? "これからの予定はありません" : "過去の予定はありません")
-                            .font(.headline)
-                            .foregroundColor(.gray)
-                        Button {
-                            showingNewPlanSheet = true
-                        } label: {
-                            Text("新しい旅行プランを作成")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding()
-                                .background(Color.blue)
-                                .cornerRadius(10)
-                        }
-                    }
-                    .padding()
-                    Spacer()
-                } else {
-                    // ⑩ リスト表示 (変更なし、displayedPlansを使う)
-                    ScrollView {
-                        LazyVGrid(columns: [
-                            GridItem(.flexible(), spacing: 16),
-                            GridItem(.flexible(), spacing: 16)
-                        ], spacing: 16) {
-                            ForEach(displayedPlans) { plan in
-                                PlanCardView(plan: plan)
-                                    .background(
-                                        NavigationLink(value: plan) { EmptyView() }
-                                            .opacity(0)
-                                    )
-                                    .contentShape(Rectangle())
-                                    .contextMenu {
-                                        // ⑪ 削除処理をView内で直接実行
-                                        Button(role: .destructive) {
-                                            deletePlan(plan: plan) // ← View内のメソッド呼び出しに変更
-                                        } label: {
-                                            Label("削除", systemImage: "trash")
-                                        }
-                                    }
-                            }
-                        }
-                        .padding()
-                    }
-                }
-            }
-            .navigationTitle("わくわく旅しおり")
-            .toolbar { /* ツールバーは変更なし */
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showingNewPlanSheet = true } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(.white, Color.blue)
-                            .font(.title2)
-                    }
-                }
-                ToolbarItem(placement: .navigationBarLeading) {
-                    NavigationLink { SettingsView() } label: {
-                        Image(systemName: "gear").foregroundColor(.gray)
-                    }
-                }
-
-                // デバッグ用ツールバーアイテムを追加
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        printAllPlans()
-                        showDebugAlert = true
-                    } label: {
-                        Image(systemName: "ladybug.fill")
-                            .foregroundColor(.red)
-                    }
-                }
-            }
-//            .navigationDestination(for: Plan.self) { plan in
-//                PlanDetailContainerView(plan: plan)
-//            }
-            // ⑫ シート表示: PlanCreateView を直接表示
-            .sheet(isPresented: $showingNewPlanSheet) {
-                // シート表示時に PlanCreateViewModel を初期化して PlanCreateView に渡す
-                // PlanCreateView が modelContext を必要とする場合は渡す
-                NavigationStack { // シート内でNavigationを使いたい場合
-                    PlanCreateView()
-                    // PlanCreateView が ViewModel を必要とするならここで注入
-                    // .environment(PlanCreateViewModel(modelContext: modelContext))
-                    // または @StateObject で PlanCreateView 自身に持たせる
-                }
-            }
-            // ⑬ .onAppear やシートの onDismiss での fetchPlans 呼び出しは不要
-            .alert("デバッグ情報", isPresented: $showDebugAlert) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text("コンソールにすべての旅行プラン情報を出力しました")
-            }
-        }
-    }
-
-    // ⑭ 削除メソッドをTopView内に定義
-    private func deletePlan(plan: Plan) {
-        withAnimation { // アニメーションはお好みで
-            modelContext.delete(plan)
-            // SwiftData + @Queryなら通常 save() は不要 (自動保存されることが多い)
-            // 必要であれば modelContext.save() を呼ぶ
-            // do { try modelContext.save() } catch { print(error) }
         }
     }
 
@@ -269,6 +145,122 @@ struct TopView: View {
         formatter.timeStyle = .short
         formatter.locale = Locale(identifier: "ja_JP")
         return formatter.string(from: date)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // ⑧ Pickerのバインディングを @State の currentFilter に変更
+                Picker("フィルター", selection: $currentFilter) {
+                    // PlanFilter.allCases を使って動的に生成 (rawValueを使用)
+                    ForEach(PlanFilter.allCases, id: \.self) { filter in
+                        Text(filter.rawValue).tag(filter)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(Color(.systemBackground))
+                // .onChange は不要 (バインディングで直接状態が変わるため)
+
+                // ⑨ エラー/ローディング表示 (シンプル化)
+                // @Queryがロード中/エラーの状態を持つわけではないので、
+                // 基本的に表示リストの有無で判断する。
+                // もし削除時などにエラーを表示したい場合は別途@State変数を用意する
+                if displayedPlans.isEmpty {
+                    Spacer()
+                    VStack(spacing: 20) {
+                        Image(systemName: "map")
+                            .font(.system(size: 70))
+                            .foregroundColor(.gray)
+                        Text(currentFilter == .upcoming ? "これからの予定はありません" : "過去の予定はありません")
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                        Button {
+                            showingNewPlanSheet = true
+                        } label: {
+                            Text("新しい旅行プランを作成")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.blue)
+                                .cornerRadius(10)
+                        }
+                    }
+                    .padding()
+                    Spacer()
+                } else {
+                    // ⑩ リスト表示 (変更なし、displayedPlansを使う)
+                    ScrollView {
+                        LazyVGrid(columns: [
+                            GridItem(.flexible()),
+                            GridItem(.flexible())
+                        ], spacing: 16) {
+                            ForEach(displayedPlans) { plan in
+                                NavigationLink(destination: PlanDetailCoverView(plan: plan)) {
+                                    PlanCardView(plan: plan, onDelete: {
+                                        viewModel.deletePlan(plan)
+                                    })
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                        .padding()
+                    }
+                }
+            }
+            .navigationTitle("わくわく旅しおり")
+            .toolbar { /* ツールバーは変更なし */
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button { showingNewPlanSheet = true } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(.white, Color.blue)
+                            .font(.title2)
+                    }
+                }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    NavigationLink { SettingsView() } label: {
+                        Image(systemName: "gear").foregroundColor(.gray)
+                    }
+                }
+
+                // デバッグ用ツールバーアイテムを追加
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        printAllPlans()
+                        showDebugAlert = true
+                    } label: {
+                        Image(systemName: "ladybug.fill")
+                            .foregroundColor(.red)
+                    }
+                }
+            }
+            .navigationDestination(for: Plan.self) { plan in
+                PlanDetailCoverView(plan: plan)
+            }
+            // ⑫ シート表示: PlanCreateView を直接表示
+            .sheet(isPresented: $showingNewPlanSheet) {
+                // シート表示時に PlanCreateViewModel を初期化して PlanCreateView に渡す
+                // PlanCreateView が modelContext を必要とする場合は渡す
+                NavigationStack { // シート内でNavigationを使いたい場合
+                    PlanCreateView()
+                    // PlanCreateView が ViewModel を必要とするならここで注入
+                    // .environment(PlanCreateViewModel(modelContext: modelContext))
+                    // または @StateObject で PlanCreateView 自身に持たせる
+                }
+            }
+            // ⑬ .onAppear やシートの onDismiss での fetchPlans 呼び出しは不要
+            .alert("デバッグ情報", isPresented: $showDebugAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("コンソールにすべての旅行プラン情報を出力しました")
+            }
+            .onAppear {
+                // ModelContextを更新
+                viewModel.updateModelContext(modelContext)
+            }
+        }
     }
 }
 
