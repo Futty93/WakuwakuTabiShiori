@@ -96,7 +96,10 @@ struct TopView: View {
                 } else {
                     // ⑩ リスト表示 (変更なし、displayedPlansを使う)
                     ScrollView {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 280), spacing: 16)], spacing: 16) {
+                        LazyVGrid(columns: [
+                            GridItem(.flexible(), spacing: 16),
+                            GridItem(.flexible(), spacing: 16)
+                        ], spacing: 16) {
                             ForEach(displayedPlans) { plan in
                                 PlanCardView(plan: plan)
                                     .background(
