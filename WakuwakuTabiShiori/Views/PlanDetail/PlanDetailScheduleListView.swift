@@ -46,6 +46,7 @@ struct PlanDetailScheduleListView: View {
                             dayTabButton(day: schedule.date, dayNumber: index + 1, isSelected: index == selectedDayIndex)
                                 .onTapGesture {
                                     selectedDayIndex = index
+                                    selectedSchedule = schedule
                                 }
                         }
                     }
@@ -98,15 +99,16 @@ struct PlanDetailScheduleListView: View {
                 .padding(.bottom, 40)
             }
             .background(Color(.systemGroupedBackground))
-
         }
         .sheet(isPresented: $showingAddItemSheet) {
-            if let schedule = selectedSchedule {
-                NavigationStack {
-                    // PlanItemの新規追加のために呼び出されており、編集のための呼び出しはPlanItemRowViewで定義
-                   PlanItemEditView(schedule: schedule, plan: plan)
-                }
+            NavigationStack {
+                // PlanItemの新規追加のために呼び出されており、編集のための呼び出しはPlanItemRowViewで定義
+                PlanItemEditView(schedule: currentSchedule, plan: plan)
             }
+        }
+        .onAppear {
+            // 初期表示時にselectedScheduleを設定
+            selectedSchedule = currentSchedule
         }
     }
 
