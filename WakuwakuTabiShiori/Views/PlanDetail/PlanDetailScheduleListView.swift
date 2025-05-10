@@ -64,10 +64,9 @@ struct PlanDetailScheduleListView: View {
                     // スケジュールタイムライン
                     if let items = currentSchedule.items, !items.isEmpty {
                         ForEach(currentSchedule.sortedItems) { item in
-                            Text("スケジュールです")
-//                                PlanItemRowView(item: item)
-//                                    .padding(.horizontal)
-//                                    .padding(.vertical, 4)
+                            PlanItemRowView(item: item)
+                                .padding(.horizontal)
+                                .padding(.vertical, 4)
                         }
                     } else {
                         // 予定アイテムがない場合
@@ -104,6 +103,7 @@ struct PlanDetailScheduleListView: View {
         .sheet(isPresented: $showingAddItemSheet) {
             if let schedule = selectedSchedule {
                 NavigationStack {
+                    // PlanItemの新規追加のために呼び出されており、編集のための呼び出しはPlanItemRowViewで定義
                    PlanItemEditView(schedule: schedule, plan: plan)
                 }
             }

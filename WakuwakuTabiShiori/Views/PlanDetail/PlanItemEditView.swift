@@ -23,6 +23,8 @@ struct PlanItemEditView: View {
     // ViewModel
     @StateObject private var viewModel: PlanItemEditViewModel
 
+    @State private var showingDeleteAlert = false
+
     init(item: PlanItem? = nil, schedule: Schedule, plan: Plan?) {
         self.item = item
         self.schedule = schedule
@@ -121,7 +123,7 @@ struct PlanItemEditView: View {
 
                     // 写真選択ボタン
                     PhotosPicker(selection: $viewModel.photoItem, matching: .images) {
-                        Label("写真を追加", systemImage: "photo")
+                        Label("写真を変更", systemImage: "photo")
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 8)
                     }
@@ -169,6 +171,20 @@ struct PlanItemEditView: View {
                 .disabled(!viewModel.isFormValid)
             }
             .listRowInsets(EdgeInsets())
+
+            // 削除ボタン（既存アイテムの場合のみ表示）
+            if item != nil {
+                Section {
+                    Button(role: .destructive) {
+                        showingDeleteAlert = true
+                    } label: {
+                        Text("削除")
+                            .bold()
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .listRowInsets(EdgeInsets())
+            }
         }
         .navigationTitle(item == nil ? "新規予定" : "予定を編集")
         .navigationBarTitleDisplayMode(.inline)
@@ -178,6 +194,17 @@ struct PlanItemEditView: View {
                     dismiss()
                 }
             }
+        }
+        .alert("予定を削除", isPresented: $showingDeleteAlert) {
+            Button("キャンセル", role: .cancel) { }
+            Button("削除", role: .destructive) {
+                if let item = item {
+                    viewModel.deleteItem(item)
+                    dismiss()
+                }
+            }
+        } message: {
+            Text("この予定を削除してもよろしいですか？\nこの操作は取り消せません。")
         }
         .onAppear {
             // ModelContextを更新

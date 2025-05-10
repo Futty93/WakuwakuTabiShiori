@@ -175,6 +175,27 @@ class PlanItemEditViewModel: ObservableObject {
         dismissAction?()
     }
 
+    // アイテム削除処理
+    func deleteItem(_ item: PlanItem) {
+        // スケジュールからアイテムを削除
+        if let index = schedule.items?.firstIndex(where: { $0.id == item.id }) {
+            schedule.items?.remove(at: index)
+        }
+
+        // アイテムを削除
+        modelContext.delete(item)
+
+        // データを保存
+        do {
+            try modelContext.save()
+            // UIの更新を通知
+            NotificationCenter.default.post(name: Notification.Name("PlanDataChanged"), object: nil)
+            print("Item Deleted: \(item.name)")
+        } catch {
+            print("Error deleting item: \(error)")
+        }
+    }
+
     // 既存アイテムの更新
     private func updateExistingItem(_ item: PlanItem) {
         item.name = name
