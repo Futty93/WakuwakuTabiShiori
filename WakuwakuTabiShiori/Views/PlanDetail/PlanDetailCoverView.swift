@@ -12,6 +12,7 @@ struct PlanDetailCoverView: View {
     @Bindable var plan: Plan
     @State private var showingShareSheet = false
     @Environment(\.modelContext) private var modelContext
+    @State private var showingEditSheet = false
 
     // ViewModel
     @StateObject private var viewModel: PlanDetailViewModel
@@ -83,11 +84,16 @@ struct PlanDetailCoverView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
-                    // 編集画面に遷移
+                    showingEditSheet = true
                 } label: {
                     Image(systemName: "pencil")
                         .foregroundColor(plan.themeColor)
                 }
+            }
+        }
+        .sheet(isPresented: $showingEditSheet) {
+            NavigationStack {
+                PlanCreateView(plan: plan)
             }
         }
     }
@@ -133,15 +139,15 @@ struct PlanDetailCoverView: View {
                     Image(systemName: "calendar")
                         .foregroundColor(plan.themeColor)
                         .frame(width: 26)
-                    
+
                     VStack(alignment: .leading) {
                         Text("旅行期間")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                        
+
                         Text("\(dateFormatter.string(from: plan.startDate)) 〜 \(dateFormatter.string(from: plan.endDate))")
                             .font(.headline)
-                        
+
                         Text("\(plan.totalDays)日間")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -150,20 +156,20 @@ struct PlanDetailCoverView: View {
                 }
             }
             .buttonStyle(PlainButtonStyle())
-            
+
             Divider()
-            
+
             // テーマ
             HStack {
                 Image(systemName: "sparkles")
                     .foregroundColor(plan.themeColor)
                     .frame(width: 26)
-                
+
                 VStack(alignment: .leading) {
                     Text("テーマ")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                    
+
                     Text(plan.themeName)
                         .font(.headline)
                 }

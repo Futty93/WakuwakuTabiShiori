@@ -55,13 +55,13 @@ struct PlanDetailScheduleListView: View {
                 .padding(.vertical, 10)
                 .background(Color(.systemBackground))
             }
+            
+            // 日程概要（タイトル、メモ）
+            dayHeader(schedule: currentSchedule)
 
             // 日程コンテンツ
             ScrollView {
                 VStack(spacing: 0) {
-                    // 日程概要（タイトル、メモ）
-                    dayHeader(schedule: currentSchedule)
-
                     // スケジュールタイムライン
                     if let items = currentSchedule.items, !items.isEmpty {
                         ForEach(currentSchedule.sortedItems) { item in
@@ -146,14 +146,6 @@ struct PlanDetailScheduleListView: View {
                     .font(.title2.bold())
 
                 Spacer()
-
-                Button {
-                    // 日程のタイトル編集機能（将来実装）
-                } label: {
-                    Image(systemName: "pencil.circle")
-                        .foregroundColor(.gray)
-                }
-                .buttonStyle(PlainButtonStyle())
             }
 
             // メモ部分（あれば）

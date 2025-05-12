@@ -25,7 +25,8 @@ struct PlanCreateView: View {
         // 一時的なModelContextを使用し、初期化エラーを避ける
         let temporaryContainer = try! ModelContainer(for: Plan.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         self._viewModel = StateObject(wrappedValue: PlanCreateViewModel(
-            modelContext: ModelContext(temporaryContainer)
+            modelContext: ModelContext(temporaryContainer),
+            existingPlan: plan // 既存のプランを渡す
         ))
     }
 
@@ -103,17 +104,6 @@ struct PlanCreateView: View {
             .onAppear {
                 // 環境から取得したModelContextに置き換える
                 viewModel.updateModelContext(modelContext)
-
-                // 編集モードの場合、既存のプランデータを設定
-                if let plan = plan {
-                    viewModel.title = plan.title
-                    viewModel.startDate = plan.startDate
-                    viewModel.endDate = plan.endDate
-                    viewModel.themeName = plan.themeName
-                    viewModel.themeColor = plan.themeColor
-                    viewModel.budget = plan.budget
-                    viewModel.memo = plan.memo ?? ""
-                }
             }
         }
     }

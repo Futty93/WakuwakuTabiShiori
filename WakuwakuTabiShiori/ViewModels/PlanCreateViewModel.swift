@@ -10,6 +10,8 @@ import SwiftData
 
 class PlanCreateViewModel: ObservableObject {
     private var modelContext: ModelContext
+    // 編集中のプラン（新規作成時はnil）
+    private var existingPlan: Plan?
 
     @Published var title: String = ""
     @Published var startDate: Date = Date()
@@ -22,8 +24,20 @@ class PlanCreateViewModel: ObservableObject {
     // バリデーションエラー用
     @Published var validationError: String?
 
-    init(modelContext: ModelContext) {
+    init(modelContext: ModelContext, existingPlan: Plan? = nil) {
         self.modelContext = modelContext
+        self.existingPlan = existingPlan
+
+        // 既存のプランがある場合は、そのデータを反映
+        if let plan = existingPlan {
+            self.title = plan.title
+            self.startDate = plan.startDate
+            self.endDate = plan.endDate
+            self.themeName = plan.themeName
+            self.themeColor = plan.themeColor
+            self.budget = plan.budget
+            self.memo = plan.memo ?? ""
+        }
     }
 
     // 環境から取得したModelContextに置き換える
@@ -43,6 +57,39 @@ class PlanCreateViewModel: ObservableObject {
             return false
         }
 
+        // 既存のプランが存在する場合は更新
+        if let plan = existingPlan {
+            return updateExistingPlan(plan)
+        } else {
+            // 新規作成
+            return createNewPlan()
+        }
+    }
+
+    // 既存のプランを更新
+    private func updateExistingPlan(_ plan: Plan) -> Bool {
+        // プロパティを更新
+        plan.title = title
+        plan.startDate = startDate
+        plan.endDate = endDate
+        plan.themeName = themeName
+        plan.themeColorData = themeColor.toData()
+        plan.budget = budget
+        plan.memo = memo.isEmpty ? nil : memo
+        plan.updatedAt = Date()
+
+        // 保存
+        do {
+            try modelContext.save()
+            return true
+        } catch {
+            print("Error updating plan: \(error)")
+            return false
+        }
+    }
+
+    // 新規プランを作成
+    private func createNewPlan() -> Bool {
         // 新規Planの作成
         let newPlan = Plan(
             title: title,
@@ -103,7 +150,7 @@ class PlanCreateViewModel: ObservableObject {
         return max(1, (components.day ?? 0) + 1)
     }
 
-    // 
+    //
     private func resetNewPlanForm() {
         title = ""
         startDate = Date()
