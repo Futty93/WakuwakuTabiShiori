@@ -25,12 +25,16 @@ struct PlanDetailScheduleListView: View {
         return formatter
     }()
 
+    private var sortedSchedules: [Schedule] {
+        plan.schedules.sorted { $0.date < $1.date }
+    }
+
     // 現在選択中の日程を取得
-    private var currentSchedule: Schedule {
-        let sortedSchedules = plan.schedules.sorted { $0.date < $1.date }
-        guard !sortedSchedules.isEmpty else {
-            // 日程が存在しない場合は空のScheduleを返す
-            return Schedule(date: Date(), title: "1日目")
+    private var currentSchedule: Schedule? {
+        guard !sortedSchedules.isEmpty,
+              selectedDayIndex >= 0,
+              selectedDayIndex < sortedSchedules.count else {
+            return nil
         }
         return sortedSchedules[selectedDayIndex]
     }
@@ -40,9 +44,8 @@ struct PlanDetailScheduleListView: View {
             // 日付選択タブ
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 2) {
-                    if !plan.schedules.isEmpty {
-                        let schedules = plan.schedules.sorted { $0.date < $1.date }
-                        ForEach(Array(schedules.enumerated()), id: \.element.id) { index, schedule in
+                    if !sortedSchedules.isEmpty {
+                        ForEach(Array(sortedSchedules.enumerated()), id: \.element.id) { index, schedule in
                             dayTabButton(day: schedule.date, dayNumber: index + 1, isSelected: index == selectedDayIndex)
                                 .onTapGesture {
                                     selectedDayIndex = index
@@ -55,15 +58,17 @@ struct PlanDetailScheduleListView: View {
                 .padding(.vertical, 10)
                 .background(Color(.systemBackground))
             }
-            
+
             // 日程概要（タイトル、メモ）
-            dayHeader(schedule: currentSchedule)
+            if let currentSchedule {
+                dayHeader(schedule: currentSchedule)
+            }
 
             // 日程コンテンツ
             ScrollView {
                 VStack(spacing: 0) {
                     // スケジュールタイムライン
-                    if let items = currentSchedule.items, !items.isEmpty {
+                    if let currentSchedule, !currentSchedule.items.isEmpty {
                         ForEach(currentSchedule.sortedItems) { item in
                             PlanItemRowView(item: item)
                                 .padding(.horizontal)
@@ -76,8 +81,10 @@ struct PlanDetailScheduleListView: View {
 
                     // 追加ボタン
                     Button {
-                        selectedSchedule = currentSchedule
-                        showingAddItemSheet = true
+                        if let currentSchedule {
+                            selectedSchedule = currentSchedule
+                            showingAddItemSheet = true
+                        }
                     } label: {
                         HStack {
                             Image(systemName: "plus.circle.fill")
@@ -101,9 +108,10 @@ struct PlanDetailScheduleListView: View {
             .background(Color(.systemGroupedBackground))
         }
         .sheet(isPresented: $showingAddItemSheet) {
-            NavigationStack {
-                // PlanItemの新規追加のために呼び出されており、編集のための呼び出しはPlanItemRowViewで定義
-                PlanItemEditView(schedule: currentSchedule, plan: plan)
+            if let selectedSchedule {
+                NavigationStack {
+                    PlanItemEditView(schedule: selectedSchedule, plan: plan)
+                }
             }
         }
         .onAppear {
@@ -122,7 +130,7 @@ struct PlanDetailScheduleListView: View {
                 .foregroundColor(isSelected ? .white : .primary)
 
             // 日付
-            Text(dateFormatter.string(from: day))
+            Text(day.formatDayWithWeekday())
                 .font(.caption2)
                 .foregroundColor(isSelected ? .white : .secondary)
         }
@@ -199,8 +207,8 @@ struct PlanDetailScheduleListView: View {
     )
 
     // 日程を作成
-    let schedule1 = Schedule(date: plan.startDate, title: "1日目：前橋観光")
-    let schedule2 = Schedule(date: plan.endDate, title: "2日目：高崎観光")
+    let schedule1 = Schedule(date: plan.startDate, title: "1日目：前橋観光", plan: plan)
+    let schedule2 = Schedule(date: plan.endDate, title: "2日目：高崎観光", plan: plan)
     plan.schedules = [schedule1, schedule2]
 
     return NavigationStack {

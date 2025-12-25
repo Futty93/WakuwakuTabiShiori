@@ -21,28 +21,12 @@ struct PlanItemRowView: View {
        self.item = item
        // ViewModelの初期化（modelContextはonAppearで環境から取得したものに置き換える）
        // 一時的なModelContextを使用し、初期化エラーを避ける
-       let temporaryContainer = try! ModelContainer(for: PlanItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+       let temporaryContext = createTemporaryModelContext(PlanItem.self)
        self._viewModel = StateObject(wrappedValue: PlanItemViewModel(
            item: item,
-           modelContext: ModelContext(temporaryContainer)
+           modelContext: temporaryContext
        ))
    }
-
-   // 時間フォーマッター
-   private let timeFormatter: DateFormatter = {
-       let formatter = DateFormatter()
-       formatter.dateFormat = "HH:mm"
-       return formatter
-   }()
-
-   // 通貨フォーマッター
-   private let currencyFormatter: NumberFormatter = {
-       let formatter = NumberFormatter()
-       formatter.numberStyle = .currency
-       formatter.currencyCode = "JPY"
-       formatter.currencySymbol = "¥"
-       return formatter
-   }()
 
    // カテゴリーに基づく色の取得
    private var categoryColor: Color {
@@ -54,7 +38,7 @@ struct PlanItemRowView: View {
        VStack(spacing: 0) {
            // 時間表示
            HStack {
-               Text(timeFormatter.string(from: item.time))
+               Text(item.time.formatHourMinute())
                    .font(.caption)
                    .padding(.horizontal, 8)
                    .padding(.vertical, 2)
@@ -68,7 +52,7 @@ struct PlanItemRowView: View {
 
                // 金額（あれば）
                if let cost = item.cost {
-                   Text(currencyFormatter.string(from: NSNumber(value: cost)) ?? "¥0")
+                   Text(cost.formatAsYen())
                        .font(.caption)
                        .foregroundColor(.secondary)
                }
@@ -78,67 +62,72 @@ struct PlanItemRowView: View {
            // メインコンテンツ
            HStack(alignment: .top, spacing: 12) {
                // カテゴリーアイコン
-               ZStack {
-                   Circle()
-                       .fill(categoryColor.opacity(0.2))
-                       .frame(width: 40, height: 40)
+               Image(systemName: item.categoryIcon)
+                   .font(.system(size: 18))
+                   .foregroundColor(.white)
+                   .frame(width: 30, height: 30)
+                   .background(categoryColor)
+                   .clipShape(Circle())
 
-                   Image(systemName: Color.iconForCategory(item.category))
-                       .font(.system(size: 20))
-                       .foregroundColor(categoryColor)
-               }
-
-               // テキスト情報
-               VStack(alignment: .leading, spacing: 4) {
+               VStack(alignment: .leading, spacing: 6) {
                    // タイトル
                    Text(item.name)
                        .font(.headline)
+                       .lineLimit(2)
 
                    // メモ（あれば）
                    if let memo = item.memo, !memo.isEmpty {
                        Text(memo)
-                           .font(.footnote)
+                           .font(.subheadline)
                            .foregroundColor(.secondary)
-                           .lineLimit(2)
+                           .lineLimit(3)
                    }
 
                    // 住所（あれば）
                    if let address = item.address, !address.isEmpty {
-                       HStack(spacing: 4) {
-                           Image(systemName: "mappin.circle.fill")
+                       HStack(alignment: .top, spacing: 4) {
+                           Image(systemName: "mappin")
                                .font(.caption)
+                               .foregroundColor(.red)
                            Text(address)
                                .font(.caption)
+                               .foregroundColor(.gray)
+                               .lineLimit(2)
                        }
-                       .foregroundColor(.secondary)
                    }
                }
-               .frame(maxWidth: .infinity, alignment: .leading)
 
-               // 写真サムネイル（あれば）
+               Spacer()
+
+               // 写真（あれば）
                if let photo = item.photo {
                    Image(uiImage: photo)
                        .resizable()
                        .scaledToFill()
                        .frame(width: 60, height: 60)
-                       .cornerRadius(8)
+                       .clipShape(RoundedRectangle(cornerRadius: 8))
                }
            }
        }
-       .padding()
-       .background(
-           RoundedRectangle(cornerRadius: 12)
-               .fill(Color(.systemBackground))
-               .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
-       )
+       .padding(.horizontal, 8)
+       .padding(.vertical, 12)
        .contentShape(Rectangle())
-       .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+       .background(Color(.systemBackground))
+       .cornerRadius(12)
+       .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
+       // タップでアイテム編集
+       .onTapGesture {
+           showingEditSheet = true
+       }
+       // スワイプで削除
+       .swipeActions(edge: .trailing) {
            Button(role: .destructive) {
                showingDeleteAlert = true
            } label: {
                Label("削除", systemImage: "trash")
            }
        }
+       // 長押しでコンテキストメニュー
        .contextMenu {
            Button(role: .destructive) {
                showingDeleteAlert = true
@@ -146,30 +135,24 @@ struct PlanItemRowView: View {
                Label("削除", systemImage: "trash")
            }
        }
-       .onTapGesture {
-           showingEditSheet = true
-       }
        .sheet(isPresented: $showingEditSheet) {
-           if let schedule = item.schedule {
-               NavigationStack {
-                   PlanItemEditView(item: item, schedule: schedule, plan: schedule.plan)
-               }
+           NavigationStack {
+               PlanItemEditView(item: item, schedule: item.schedule, plan: item.schedule.plan)
            }
        }
        .alert("予定を削除", isPresented: $showingDeleteAlert) {
            Button("キャンセル", role: .cancel) { }
            Button("削除", role: .destructive) {
-               withAnimation {
-                   viewModel.deleteItem()
-               }
+               viewModel.deleteItem()
            }
        } message: {
-           Text("「\(item.name)」を削除してもよろしいですか？\nこの操作は取り消せません。")
+           Text("\(item.name) を削除してもよろしいですか？この操作は取り消せません。")
        }
        .onAppear {
-           // 環境から取得した本物のModelContextをViewModelに設定
+           // ModelContextを更新（@Environmentから取得）
            viewModel.modelContext = modelContext
-           // 最新のitem参照を使用
+           // アイテムへの参照も最新に更新
+           // NOTE: 最新のitemへの参照に差し替える（SwiftDataの問題対応）
            viewModel.item = item
        }
    }
@@ -179,13 +162,16 @@ struct PlanItemRowView: View {
    let config = ModelConfiguration(isStoredInMemoryOnly: true)
    let container = try! ModelContainer(for: Plan.self, configurations: config)
 
-   // サンプルデータ作成
+   let plan = Plan(title: "群馬旅行", createdAt: Date())
+   let schedule = Schedule(date: Date(), title: "1日目", plan: plan)
+   plan.schedules.append(schedule)
    let item = PlanItem(
        time: Date(),
        category: "meal",
        name: "群馬名物 水沢うどん",
        memo: "有名なうどん店。予約しておくとスムーズ。",
-       cost: 1500
+       cost: 1500,
+       schedule: schedule
    )
 
    return PlanItemRowView(item: item)

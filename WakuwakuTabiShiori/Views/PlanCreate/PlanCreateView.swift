@@ -18,6 +18,18 @@ struct PlanCreateView: View {
 
     // ViewModel
     @StateObject private var viewModel: PlanCreateViewModel
+    private let timeZoneOptions: [String] = [
+        "Asia/Tokyo",
+        "Asia/Seoul",
+        "Asia/Taipei",
+        "Asia/Shanghai",
+        "Asia/Bangkok",
+        "Europe/London",
+        "Europe/Paris",
+        "America/Los_Angeles",
+        "America/New_York",
+        "Australia/Sydney"
+    ]
 
     init(plan: Plan? = nil) {
         self.plan = plan
@@ -44,6 +56,7 @@ struct PlanCreateView: View {
 
                             DatePicker("開始日", selection: $viewModel.startDate, displayedComponents: .date)
                             DatePicker("終了日", selection: $viewModel.endDate, in: viewModel.startDate..., displayedComponents: .date)
+                            timeZonePicker
                         } header: {
                             sectionHeader("基本情報")
                         }
@@ -165,5 +178,36 @@ struct PlanCreateView: View {
                         .stroke(Color(.systemGray4), lineWidth: 1)
                 )
         }
+    }
+
+    private var timeZonePicker: some View {
+        HStack {
+            Text("時間帯")
+            Spacer()
+            Menu {
+                ForEach(timeZoneOptions, id: \.self) { identifier in
+                    Button {
+                        viewModel.timeZoneIdentifier = identifier
+                    } label: {
+                        Text(displayName(for: identifier))
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(displayName(for: viewModel.timeZoneIdentifier))
+                        .foregroundColor(.primary)
+                    Image(systemName: "chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+    }
+
+    private func displayName(for identifier: String) -> String {
+        if let timeZone = TimeZone(identifier: identifier) {
+            return timeZone.identifier
+        }
+        return identifier
     }
 }

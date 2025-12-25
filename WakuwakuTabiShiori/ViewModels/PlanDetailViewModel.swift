@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import PhotosUI
+import UIKit
 
 // MARK: - PlanDetailViewModel
 // 全体的なプラン詳細用ViewModel
@@ -21,11 +22,9 @@ class PlanDetailViewModel: ObservableObject {
 
         var total: Double = 0
         for schedule in schedules {
-            if let items = schedule.items {
-                for item in items {
-                    if let cost = item.cost {
-                        total += cost
-                    }
+            for item in schedule.items {
+                if let cost = item.cost {
+                    total += cost
                 }
             }
         }
@@ -102,6 +101,7 @@ class PlanItemEditViewModel: ObservableObject {
     private var schedule: Schedule
     private var plan: Plan?
     var dismissAction: DismissAction?
+    private let maxImageBytes = 1_000_000
 
     init(modelContext: ModelContext, item: PlanItem? = nil, schedule: Schedule, plan: Plan?, dismiss: DismissAction? = nil) {
         self.modelContext = modelContext
@@ -143,9 +143,10 @@ class PlanItemEditViewModel: ObservableObject {
     func loadImage(from photoItem: PhotosPickerItem) async {
         do {
             if let data = try await photoItem.loadTransferable(type: Data.self) {
+                let compressed = compressIfNeeded(data: data)
                 DispatchQueue.main.async {
-                    self.photoData = data
-                    self.uiImage = UIImage(data: data)
+                    self.photoData = compressed
+                    self.uiImage = UIImage(data: compressed)
                 }
             }
         } catch {
@@ -178,8 +179,8 @@ class PlanItemEditViewModel: ObservableObject {
     // アイテム削除処理
     func deleteItem(_ item: PlanItem) {
         // スケジュールからアイテムを削除
-        if let index = schedule.items?.firstIndex(where: { $0.id == item.id }) {
-            schedule.items?.remove(at: index)
+        if let index = schedule.items.firstIndex(where: { $0.id == item.id }) {
+            schedule.items.remove(at: index)
         }
 
         // アイテムを削除
@@ -205,7 +206,7 @@ class PlanItemEditViewModel: ObservableObject {
         item.cost = cost
         item.address = address.isEmpty ? nil : address
         item.isCompleted = isCompleted
-        item.photoData = photoData
+        item.photoData = photoData.map { compressIfNeeded(data: $0) }
         item.latitude = latitude
         item.longitude = longitude
         item.updatedAt = Date()
@@ -221,26 +222,36 @@ class PlanItemEditViewModel: ObservableObject {
             name: name,
             memo: memo.isEmpty ? nil : memo,
             cost: cost,
-            photoData: photoData,
+            photoData: photoData.map { compressIfNeeded(data: $0) },
             latitude: latitude,
             longitude: longitude,
             address: address.isEmpty ? nil : address,
             createdAt: Date(),
             updatedAt: Date(),
-            isCompleted: isCompleted
+            isCompleted: isCompleted,
+            schedule: schedule
         )
 
-        // リレーションを設定
-        newItem.schedule = schedule
-
-        // items配列がnilの場合は初期化
-        if schedule.items == nil {
-            schedule.items = []
-        }
-
         // アイテムを追加
-        schedule.items?.append(newItem)
+        schedule.items.append(newItem)
 
         print("New Item Created: \(newItem.name)")
+    }
+
+    private func compressIfNeeded(data: Data) -> Data {
+        guard data.count > maxImageBytes else { return data }
+        guard let image = UIImage(data: data) else { return data }
+
+        var quality: CGFloat = 0.9
+        var compressedData = data
+
+        while compressedData.count > maxImageBytes, quality > 0.1 {
+            if let candidate = image.jpegData(compressionQuality: quality) {
+                compressedData = candidate
+            }
+            quality -= 0.1
+        }
+
+        return compressedData
     }
 }

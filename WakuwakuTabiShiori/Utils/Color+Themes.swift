@@ -21,7 +21,18 @@ extension Color {
         ("Cafe", "cup.and.saucer", .brown),
         ("Festival", "music.note", .purple),
         ("Cherry Blossom", "leaf", .pink),
-        ("Autumn", "leaf.fill", .orange)
+        ("Autumn", "leaf.fill", .orange),
+        // 新しいテーマを追加
+        ("Forest", "tree.fill", Color(red: 0.0, green: 0.5, blue: 0.3)),
+        ("Beach", "sun.max.fill", Color(red: 0.9, green: 0.7, blue: 0.3)),
+        ("Desert", "sun.dust.fill", Color(red: 0.85, green: 0.65, blue: 0.4)),
+        ("Camping", "tent.fill", Color(red: 0.4, green: 0.3, blue: 0.1)),
+        ("Onsen", "flame.fill", Color(red: 0.9, green: 0.3, blue: 0.2)),
+        ("Snow", "snow", Color(red: 0.7, green: 0.8, blue: 0.9)),
+        ("Sweet", "heart.fill", Color(red: 0.9, green: 0.4, blue: 0.7)),
+        ("Historical", "building.columns.fill", Color(red: 0.6, green: 0.5, blue: 0.4)),
+        ("Adventure", "map.fill", Color(red: 0.5, green: 0.3, blue: 0.6)),
+        ("Gourmet", "fork.knife.circle.fill", Color(red: 0.8, green: 0.4, blue: 0.0))
     ]
 
     // テーマ名から色を取得

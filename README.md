@@ -180,25 +180,26 @@ WakuwakuTabiShori/                      <-- ⭐️ プロジェクトルート
   * `themeColorData`: Data (テーマカラーをData型で保存)
   * `budget`: Double? (目安予算、オプショナル)
   * `memo`: String? (メモ、オプショナル)
+  * `timeZoneIdentifier`: String (プランのタイムゾーンID。基本は"Asia/Tokyo")
   * `createdAt`: Date (作成日時)
   * `updatedAt`: Date (最終更新日時)
-  * `schedules`: `[Schedule]?` (このプランに属する日程リストへのリレーションシップ、一対多、カスケード削除)
+  * `schedules`: `[Schedule]` (このプランに属する日程リスト。一対多、カスケード削除。開始日昇順で保持)
 
 * **`Schedule`**: 旅行プラン内の特定の日付に対応する情報を保持します。
   * `id`: UUID (一意な識別子)
-  * `date`: Date (該当日付)
-  * `items`: `[PlanItem]?` (この日程に属する場所・予定リストへのリレーションシップ、一対多、カスケード削除)
-  * `plan`: `Plan?` (`Plan`への逆リレーションシップ)
+  * `date`: Date (該当日付。保存はUTC、解釈は`Plan.timeZoneIdentifier`)
+  * `items`: `[PlanItem]` (この日程に属する場所・予定リスト。一対多、カスケード削除。時刻昇順で保持)
+  * `plan`: `Plan` (`Plan`への逆リレーションシップ、必須)
 
 * **`PlanItem`**: 各日程内の具体的な場所や予定の詳細情報を保持します。
   * `id`: UUID (一意な識別子)
-  * `time`: Date (予定時刻)
+  * `time`: Date (予定時刻。保存はUTC、解釈は`Plan.timeZoneIdentifier`)
   * `category`: String (カテゴリ種別: "transport", "meal", "sightseeing"など)
   * `name`: String (場所や予定の名称)
   * `memo`: String? (詳細メモ、オプショナル)
   * `cost`: Double? (費用、オプショナル)
-  * `photoData`: Data? (関連写真データ、オプショナル)
-  * `schedule`: `Schedule?` (`Schedule`への逆リレーションシップ)
+  * `photoData`: Data? (関連写真データ、オプショナル。サイズ上限/圧縮方針は後述)
+  * `schedule`: `Schedule` (`Schedule`への逆リレーションシップ、必須)
 
 ### 6.2. エンティティ相関図 (ER図)
 
@@ -246,6 +247,11 @@ erDiagram
 * `SCHEDULE` は必ず1つの `PLAN` に属します。
 * `PLAN_ITEM` は必ず1つの `SCHEDULE` に属します。
 * `@Relationship` の `deleteRule: .cascade` により、`Plan` が削除されると関連する `Schedule` と `PlanItem` も自動的に削除されます。同様に `Schedule` が削除されると関連する `PlanItem` も削除されます。
+* 並び順: `Plan.schedules` は開始日昇順、`Schedule.items` は時刻昇順で保持・取得する。
+* オプショナル削減: スケジュールとアイテムの配列は非オプショナルの空配列で初期化し、逆リレーションも必須とする。
+* 期間短縮時: 対象外のSchedule/PlanItemは即削除せず、ユーザーに確認ダイアログを出し、選択されたものだけ削除する（削除時はカスケード）。
+* タイムゾーン: `Plan.timeZoneIdentifier` を基準に表示し、保存はUTCで統一する。端末TZとの差分表示は必要時のみ。
+* 画像サイズ: `photoData` は直格納だが、保存前にリサイズ/圧縮して上限（例: 1MB程度）を超えないようにする。必要ならサムネイルを別Dataで持ち、原本は同上限内に収める。
 
 ### 6.3. データ操作ロジック概要 (CRUD操作)
 
@@ -353,3 +359,23 @@ erDiagram
 ---
 
 このREADMEはプロジェクトの進行に合わせて適宜更新してください。
+
+
+/api/trpc/agent.officialAgents?input=%7B%22organizationId%22%3A%22b7d5263b-d13e-4609-a762-512cfadd58d3%22%2C%22searchText%22%3A%22%22%2C%22skip%22%3A0%2C%22take%22%3A1%2C%22categories%22%3A%5B%5D%7D
+
+
+/api/trpc/agent.customAgents?input=%7B%22organizationId%22%3A%22b7d5263b-d13e-4609-a762-512cfadd58d3%22%2C%22searchText%22%3A%22%22%2C%22skip%22%3A0%2C%22take%22%3A1%2C%22categories%22%3A%5B%5D%7D
+
+input={"organizationId":"b7d5263b-d13e-4609-a762-512cfadd58d3","searchText":"","skip":0,"take":1,"categories":[]}
+
+## 11. 初期仕様の決定事項（共有なし・ローカル運用前提）
+
+* アカウント・同期: Apple ID前提のシングルユーザー利用。CloudKit共有なし、ローカル保存のみ。
+* オフライン: オフライン編集可。オンライン前提の同期/コンフリクト処理は不要。
+* 期間短縮時の挙動: 範囲外のSchedule/PlanItemは即削除せずユーザーに確認し、手動選択で削除。
+* トップ画面ソート/フィルタ: ソートは開始日昇順。フィルタは期間とテーマをサポート（参加メンバーは不要）。
+* 予算・通貨: 日本円、整数のみ入力。小数や多通貨対応は行わない。
+* タイムゾーン: 基本は日本時間固定。旅行先が時差ありの場合のみプラン単位でタイムゾーン選択可。
+* 画像保存: PlanItemのphotoDataはSwiftDataにData直格納（外部ファイル保存なし）。
+* テーマ: プリセット約10種を用意し、背景/ボタン/カードの適用範囲を表で明示。カスタムテーマ作成を許可。
+* 通知: 通知機能は当面実装しない。

@@ -20,6 +20,7 @@ class PlanCreateViewModel: ObservableObject {
     @Published var themeColor: Color = Color.orange
     @Published var budget: Double?
     @Published var memo: String = ""
+    @Published var timeZoneIdentifier: String = "Asia/Tokyo"
 
     // バリデーションエラー用
     @Published var validationError: String?
@@ -37,6 +38,7 @@ class PlanCreateViewModel: ObservableObject {
             self.themeColor = plan.themeColor
             self.budget = plan.budget
             self.memo = plan.memo ?? ""
+            self.timeZoneIdentifier = plan.timeZoneIdentifier
         }
     }
 
@@ -76,6 +78,7 @@ class PlanCreateViewModel: ObservableObject {
         plan.themeColorData = themeColor.toData()
         plan.budget = budget
         plan.memo = memo.isEmpty ? nil : memo
+        plan.timeZoneIdentifier = timeZoneIdentifier
         plan.updatedAt = Date()
 
         // 保存
@@ -99,6 +102,7 @@ class PlanCreateViewModel: ObservableObject {
             themeColorData: themeColor.toData(),
             budget: budget,
             memo: memo.isEmpty ? nil : memo,
+            timeZoneIdentifier: timeZoneIdentifier,
             createdAt: Date()
         )
 
@@ -111,7 +115,8 @@ class PlanCreateViewModel: ObservableObject {
             let schedule = Schedule(
                 date: currentDate,
                 title: "\(dayCount)日目",
-                createdAt: Date()
+                createdAt: Date(),
+                plan: newPlan
             )
             newPlan.schedules.append(schedule)
 

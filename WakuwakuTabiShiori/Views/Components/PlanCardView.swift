@@ -41,23 +41,16 @@ struct PlanCardView: View {
         }
         .frame(width: 180, height: 220) // カードのサイズを指定 (調整可能)
         .cornerRadius(cornerRadius)
-        .shadow(color: themeColor.opacity(0.4), radius: shadowRadius, x: 0, y: shadowY)
+        .shadow(color: plan.themeColor.opacity(0.4), radius: shadowRadius, x: 0, y: shadowY)
         // タップ時のアニメーションは任意 (ListやScrollView側で制御することも多い)
         // .scaleEffect(isPressed ? 0.98 : 1.0) // 例
     }
 
     // MARK: - Private Computed Properties & Functions
 
-    // テーマ名に基づいて色を決定 (実際にはHelperやPlanの拡張で管理推奨)
+    // テーマ名に基づいて色を決定
     private var themeColor: Color {
-        switch plan.themeName {
-        case "Sea": return .blue
-        case "Cafe": return .brown
-        case "Forest": return .green
-        case "City": return .purple
-        case "Sweet": return .pink
-        default: return .indigo // デフォルトの色
-        }
+        Color.fromThemeName(plan.themeName)
     }
 
     // 開始日までの残り日数を計算 (過去ならnil)
@@ -112,18 +105,16 @@ struct PlanCardView: View {
     private var backgroundLayer: some View {
         RoundedRectangle(cornerRadius: cornerRadius)
             // グラデーションで少しリッチに
-            .fill(themeColor.gradient)
-            // テーマアイコンを薄く表示しても面白いかも (オプション)
-            /*
+            .fill(plan.themeColor.gradient)
+            // テーマアイコンを薄く表示
             .overlay(
-                Image(systemName: themeIconName) // themeIconNameを計算する処理が必要
+                Image(systemName: Color.iconNameForTheme(plan.themeName))
                     .font(.system(size: 80))
-                    .foregroundColor(.white.opacity(0.15))
+                    .foregroundColor(.white.opacity(0.3))
                     .rotationEffect(.degrees(-20))
-                    .offset(x: 40, y: -30),
+                    .offset(x: 40, y: 0),
                 alignment: .topLeading
             )
-             */
             .clipped() // overlayがはみ出さないように
     }
 
@@ -152,7 +143,7 @@ struct PlanCardView: View {
                     Spacer() // 右寄せにする
                     Text(days == 0 ? "今日！" : "あと \(days) 日")
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(themeColor) // テーマカラーを文字色に
+                        .foregroundColor(plan.themeColor) // テーマカラーを文字色に
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
                         .background(.white.opacity(0.9)) // 白い背景

@@ -13,21 +13,36 @@ import UIKit
 @Model
 final class PlanItem {
     var time: Date
-    var category: String // 例: "transport", "meal", "sightseeing"
+    var category: String
     var name: String
     var memo: String?
     var cost: Double?
-    var photoData: Data? // 写真データ (Data型で保持)
-    var latitude: Double? // 位置情報
+    var photoData: Data?
+    var latitude: Double?
     var longitude: Double?
-    var address: String? // 住所
-    var url: URL? // 関連URL（店舗サイト、予約サイトなど）
-    var schedule: Schedule? // どのScheduleに属するか
+    var address: String?
+    var url: URL?
+    var schedule: Schedule
     var createdAt: Date
     var updatedAt: Date
-    var isCompleted: Bool = false // タスク完了フラグ（やることリスト用）
+    var isCompleted: Bool = false
 
-    init(time: Date = Date(), category: String = "other", name: String = "", memo: String? = nil, cost: Double? = nil, photoData: Data? = nil, latitude: Double? = nil, longitude: Double? = nil, address: String? = nil, url: URL? = nil, createdAt: Date = Date(), updatedAt: Date = Date(), isCompleted: Bool = false) {
+    init(
+        time: Date = Date(),
+        category: String = "other",
+        name: String = "",
+        memo: String? = nil,
+        cost: Double? = nil,
+        photoData: Data? = nil,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        address: String? = nil,
+        url: URL? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date(),
+        isCompleted: Bool = false,
+        schedule: Schedule
+    ) {
         self.time = time
         self.category = category
         self.name = name
@@ -41,6 +56,7 @@ final class PlanItem {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.isCompleted = isCompleted
+        self.schedule = schedule
     }
 
     // カテゴリに基づいたアイコン名を返す

@@ -31,9 +31,9 @@ struct PlanItemEditView: View {
         self.plan = plan
         // ViewModelの初期化（modelContextはonAppearで環境から取得したものに置き換える）
         // 一時的なModelContextを使用し、初期化エラーを避ける
-        let temporaryContainer = try! ModelContainer(for: PlanItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let temporaryContext = createTemporaryModelContext(PlanItem.self)
         self._viewModel = StateObject(wrappedValue: PlanItemEditViewModel(
-            modelContext: ModelContext(temporaryContainer),
+            modelContext: temporaryContext,
             item: item,
             schedule: schedule,
             plan: plan
@@ -74,8 +74,7 @@ struct PlanItemEditView: View {
                     }
                 }
             } header: {
-                Text("基本情報")
-                    .foregroundColor(plan?.themeColor ?? .blue)
+                sectionHeader("基本情報", color: plan?.themeColor ?? .blue)
             }
 
             // メモと住所
@@ -124,6 +123,7 @@ struct PlanItemEditView: View {
                     // 写真選択ボタン
                     PhotosPicker(selection: $viewModel.photoItem, matching: .images) {
                         Label("写真を変更", systemImage: "photo")
+                            .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 8)
                     }
@@ -138,22 +138,16 @@ struct PlanItemEditView: View {
                     }
                 }
             } header: {
-                Text("写真")
-                    .foregroundColor(plan?.themeColor ?? .blue)
+                sectionHeader("写真", color: plan?.themeColor ?? .blue)
             }
 
             // 予算セクション
             Section {
-                HStack {
-                    Text("¥")
-                    TextField("費用（任意）", value: $viewModel.cost, format: .number)
-                        .keyboardType(.numberPad)
-                }
+                budgetInputStyle(value: $viewModel.cost)
 
                 Toggle("完了済み", isOn: $viewModel.isCompleted)
             } header: {
-                Text("費用・状態")
-                    .foregroundColor(plan?.themeColor ?? .blue)
+                sectionHeader("費用・状態", color: plan?.themeColor ?? .blue)
             }
 
             // 保存ボタン
@@ -221,7 +215,8 @@ struct PlanItemEditView: View {
 
     // サンプルデータ
     let plan = Plan(title: "群馬旅行", themeName: "Default", createdAt: Date())
-    let schedule = Schedule(date: Date(), title: "1日目")
+    let schedule = Schedule(date: Date(), title: "1日目", plan: plan)
+    plan.schedules.append(schedule)
 
     return NavigationStack {
         PlanItemEditView(schedule: schedule, plan: plan)

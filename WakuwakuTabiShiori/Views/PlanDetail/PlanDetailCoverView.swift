@@ -10,7 +10,6 @@ import SwiftData
 
 struct PlanDetailCoverView: View {
     @Bindable var plan: Plan
-    @State private var showingShareSheet = false
     @Environment(\.modelContext) private var modelContext
     @State private var showingEditSheet = false
 
@@ -21,10 +20,10 @@ struct PlanDetailCoverView: View {
         self.plan = plan
         // ViewModelの初期化（modelContextはonAppearで環境から取得したものに置き換える）
         // 一時的なModelContextを使用し、初期化エラーを避ける
-        let temporaryContainer = try! ModelContainer(for: Plan.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let temporaryContext = createTemporaryModelContext(Plan.self)
         self._viewModel = StateObject(wrappedValue: PlanDetailViewModel(
             plan: plan,
-            modelContext: ModelContext(temporaryContainer)
+            modelContext: temporaryContext
         ))
     }
 
@@ -37,26 +36,16 @@ struct PlanDetailCoverView: View {
         return formatter
     }()
 
-    // 通貨フォーマッター
-    private let currencyFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "JPY"
-        formatter.currencySymbol = "¥"
-        return formatter
-    }()
-
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
                 // ヘッダー背景
                 themeBanner
 
+                scheduleShortcut
+
                 // 情報セクション
                 infoSection
-
-                // メンバーセクション
-                memberSection
 
                 // 予算セクション
                 if let budget = plan.budget {
@@ -68,8 +57,6 @@ struct PlanDetailCoverView: View {
                     memoSection(memo: memo)
                 }
 
-                // シェアボタン
-                shareButton
             }
             .padding(.bottom, 30)
         }
@@ -145,7 +132,7 @@ struct PlanDetailCoverView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
-                        Text("\(dateFormatter.string(from: plan.startDate)) 〜 \(dateFormatter.string(from: plan.endDate))")
+                        Text("\(plan.startDate.formatLongDate()) 〜 \(plan.endDate.formatLongDate())")
                             .font(.headline)
 
                         Text("\(plan.totalDays)日間")
@@ -175,66 +162,40 @@ struct PlanDetailCoverView: View {
                 }
             }
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.systemBackground))
-        )
-        .padding()
+        .cardStyle()
     }
 
-    // メンバーセクション
-    private var memberSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("メンバー")
-                .font(.headline)
-                .padding(.horizontal)
+    private var scheduleShortcut: some View {
+        NavigationLink(destination: PlanDetailScheduleListView(plan: plan)) {
+            HStack {
+                Image(systemName: "calendar.day.timeline.left")
+                    .foregroundColor(.white)
+                    .padding(10)
+                    .background(plan.themeColor)
+                    .clipShape(Circle())
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 15) {
-                    // 自分（現在のユーザー）
-                    memberIcon(name: "あなた", isCurrentUser: true)
-
-                    // 他のメンバー（仮）
-                    // plan.memberIds が nil でないことを確認し、安全にアンラップ
-                    if let memberIds = plan.memberIds, !memberIds.isEmpty {
-                        // 他のメンバーがいる場合のみ表示 (自分自身を除く)
-                        // ※ dropFirst() だと自分自身も表示される可能性があるため、
-                        //   より正確には自分のIDを除外するなどの処理が必要だが、
-                        //   ここでは仮実装として memberIds が空でないかで判定
-                        // ※ 将来的にUserモデルを使う場合はここのロジックが変わる
-
-                        // memberIds 配列からメンバーアイコンを表示
-                        ForEach(memberIds, id: \.self) { memberId in
-                            // TODO: 実際には memberId を使ってユーザー情報を取得し表示する
-                            // 例: if memberId != myUserId { memberIcon(...) }
-                            // 今は仮でゲスト表示
-                            if memberId != "currentUserIdentifierPlaceholder" { // 仮の自分のIDと比較
-                                memberIcon(name: "ゲスト", isCurrentUser: false)
-                            }
-                        }
-                    }
-
-                    // メンバー追加ボタン（将来実装）
-                    Button {
-                        // 招待機能を実装
-                    } label: {
-                        ZStack {
-                            Circle()
-                                .fill(Color.gray.opacity(0.2))
-                                .frame(width: 60, height: 60)
-
-                            Image(systemName: "person.badge.plus")
-                                .font(.system(size: 24))
-                                .foregroundColor(.gray)
-                        }
-                    }
-                    .buttonStyle(PlainButtonStyle())
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("日程リストを開く")
+                        .font(.headline)
+                    Text("予定の追加・編集はこちら")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
-                .padding(.horizontal)
+
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.secondary)
             }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(.systemBackground))
+                    .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
+            )
+            .padding(.horizontal)
+            .padding(.vertical, 12)
         }
-        .padding(.vertical)
+        .buttonStyle(PlainButtonStyle())
     }
 
     // 予算セクション
@@ -247,7 +208,7 @@ struct PlanDetailCoverView: View {
             HStack(alignment: .top, spacing: 20) {
                 // 予算金額
                 VStack {
-                    Text(currencyFormatter.string(from: NSNumber(value: budget)) ?? "¥0")
+                    Text(budget.formatAsYen())
                         .font(.title2.bold())
                         .foregroundColor(plan.themeColor)
 
@@ -260,7 +221,7 @@ struct PlanDetailCoverView: View {
                 // 使用金額（計算済み）
                 if let usedBudget = viewModel.calculateUsedBudget() {
                     VStack {
-                        Text(currencyFormatter.string(from: NSNumber(value: usedBudget)) ?? "¥0")
+                        Text(usedBudget.formatAsYen())
                             .font(.title2.bold())
                             .foregroundColor(usedBudget > budget ? .red : .green)
 
@@ -274,7 +235,7 @@ struct PlanDetailCoverView: View {
                 // 残り予算
                 if let remainingBudget = viewModel.calculateRemainingBudget() {
                     VStack {
-                        Text(currencyFormatter.string(from: NSNumber(value: remainingBudget)) ?? "¥0")
+                        Text(remainingBudget.formatAsYen())
                             .font(.title2.bold())
                             .foregroundColor(remainingBudget < 0 ? .red : .green)
 
@@ -285,12 +246,7 @@ struct PlanDetailCoverView: View {
                     .frame(maxWidth: .infinity)
                 }
             }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemBackground))
-            )
-            .padding(.horizontal)
+            .cardStyle()
         }
     }
 
@@ -314,49 +270,6 @@ struct PlanDetailCoverView: View {
         .padding(.vertical)
     }
 
-    // シェアボタン
-    private var shareButton: some View {
-        Button {
-            showingShareSheet = true
-        } label: {
-            HStack {
-                Image(systemName: "square.and.arrow.up")
-                Text("共有する")
-            }
-            .font(.headline)
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(plan.themeColor)
-            .cornerRadius(12)
-            .padding(.horizontal)
-        }
-        .padding(.top, 20)
-        .sheet(isPresented: $showingShareSheet) {
-            // 共有シートの実装（将来的に）
-            Text("共有機能は準備中です")
-                .presentationDetents([.medium])
-        }
-    }
-
-    // メンバーアイコン
-    private func memberIcon(name: String, isCurrentUser: Bool) -> some View {
-        VStack {
-            ZStack {
-                Circle()
-                    .fill(isCurrentUser ? plan.themeColor : Color.gray.opacity(0.3))
-                    .frame(width: 60, height: 60)
-
-                Image(systemName: "person.fill")
-                    .font(.system(size: 24))
-                    .foregroundColor(isCurrentUser ? .white : .gray)
-            }
-
-            Text(name)
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-    }
 }
 
 #Preview {
@@ -370,7 +283,6 @@ struct PlanDetailCoverView: View {
         endDate: Calendar.current.date(byAdding: .day, value: 2, to: Date())!,
         themeName: "Sea",
         budget: 50000,
-        memberIds: [UUID().uuidString, UUID().uuidString],
         createdAt: Date()
     )
 

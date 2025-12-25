@@ -65,6 +65,7 @@ struct TopView: View {
             print("\n📝 プラン[\(index+1)]: \(plan.title)")
             print("  🗓️ 期間: \(formatDate(plan.startDate)) 〜 \(formatDate(plan.endDate)) (\(plan.totalDays)日間)")
             print("  🎨 テーマ: \(plan.themeName)")
+            print("  テーマカラー: \(plan.themeColor)")
             if let budget = plan.budget {
                 print("  💰 予算: ¥\(Int(budget))")
                 if let percentage = plan.budgetUsagePercentage {
@@ -84,8 +85,8 @@ struct TopView: View {
                 }
 
                 // PlanItemsの表示
-                if let items = schedule.items, !items.isEmpty {
-                    print("      🗒️ イベント (\(items.count)件):")
+                if !schedule.items.isEmpty {
+                    print("      🗒️ イベント (\(schedule.items.count)件):")
                     for item in schedule.sortedItems {
                         print("        ⏰ \(formatTime(item.time)): \(item.name) (\(item.category))")
                         if let cost = item.cost, cost > 0 {
@@ -109,10 +110,6 @@ struct TopView: View {
 
             print("  ⏱️ 作成日時: \(formatDateTime(plan.createdAt))")
             print("  ⏱️ 更新日時: \(formatDateTime(plan.updatedAt))")
-            print("  🔄 共有状態: \(plan.isShared ? "共有中" : "非共有")")
-            if let memberIds = plan.memberIds, !memberIds.isEmpty {
-                print("  👥 メンバー: \(memberIds.joined(separator: ", "))")
-            }
 
             print("------------------------")
         }
